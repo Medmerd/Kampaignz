@@ -38,6 +38,23 @@ type MessageInput = {
   playerIds: number[];
 };
 
+type Session = {
+  id: number;
+  campaign_id: number;
+  title: string;
+  config: Record<string, unknown>;
+  sessionDetails: string;
+  map: string;
+  created_at: string;
+};
+
+type SessionInput = {
+  title: string;
+  config: Record<string, unknown>;
+  sessionDetails: string;
+  map: string;
+};
+
 const api = {
   createCampaign: (name: string) =>
     ipcRenderer.invoke('campaigns:create', name) as Promise<Campaign>,
@@ -62,6 +79,12 @@ const api = {
     ipcRenderer.invoke('messages:generateFromConfig', config) as Promise<string>,
   sendMessageToDiscord: (content: string) =>
     ipcRenderer.invoke('messages:sendToDiscord', content) as Promise<void>,
+  listSessionsByCampaign: (campaignId: number) =>
+    ipcRenderer.invoke('sessions:listByCampaign', campaignId) as Promise<Session[]>,
+  createSession: (campaignId: number, input: SessionInput) =>
+    ipcRenderer.invoke('sessions:create', campaignId, input) as Promise<Session>,
+  updateSession: (sessionId: number, input: SessionInput) =>
+    ipcRenderer.invoke('sessions:update', sessionId, input) as Promise<Session>,
 };
 
 contextBridge.exposeInMainWorld('api', api);

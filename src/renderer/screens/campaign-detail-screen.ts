@@ -6,6 +6,8 @@ import type {
   MessageInput,
   Player,
   PlayerInput,
+  Session,
+  SessionInput,
 } from '../types';
 import { escapeHtml, mount, queryRequired } from '../utils/dom';
 import { formatDate } from '../utils/format';
@@ -16,7 +18,7 @@ type Options = {
   campaignId: number;
 };
 
-type TabName = 'campaign' | 'players' | 'messages';
+type TabName = 'campaign' | 'players' | 'messages' | 'sessions';
 
 const parseConfig = (raw: string): Record<string, unknown> => {
   const trimmed = raw.trim();
@@ -40,16 +42,19 @@ export const renderCampaignDetailScreen = async ({
   const campaign = await api.getCampaign(campaignId);
   const players = await api.listPlayersByCampaign(campaignId);
   const messages = await api.listMessagesByCampaign(campaignId);
+  const sessions = await api.listSessionsByCampaign(campaignId);
 
   let activeTab: TabName = 'campaign';
   let selectedPlayerId: number | null = players.length ? players[0].id : null;
   let selectedMessageId: number | null = messages.length ? messages[0].id : null;
+  let selectedSessionId: number | null = sessions.length ? sessions[0].id : null;
   let isGeneratingMessage = false;
 
   const draw = (
     stateCampaign: Campaign,
     statePlayers: Player[],
     stateMessages: Message[],
+    stateSessions: Session[],
   ) => {
     const selectedPlayer =
       selectedPlayerId === null
@@ -59,6 +64,10 @@ export const renderCampaignDetailScreen = async ({
       selectedMessageId === null
         ? null
         : stateMessages.find((message) => message.id === selectedMessageId) ?? null;
+    const selectedSession =
+      selectedSessionId === null
+        ? null
+        : stateSessions.find((session) => session.id === selectedSessionId) ?? null;
 
     mount(
       root,
@@ -73,6 +82,7 @@ export const renderCampaignDetailScreen = async ({
             <button class="tab-button ${activeTab === 'campaign' ? 'is-active' : ''}" data-tab="campaign" role="tab" aria-selected="${activeTab === 'campaign'}">Campaign details</button>
             <button class="tab-button ${activeTab === 'players' ? 'is-active' : ''}" data-tab="players" role="tab" aria-selected="${activeTab === 'players'}">Player details</button>
             <button class="tab-button ${activeTab === 'messages' ? 'is-active' : ''}" data-tab="messages" role="tab" aria-selected="${activeTab === 'messages'}">Messages</button>
+            <button class="tab-button ${activeTab === 'sessions' ? 'is-active' : ''}" data-tab="sessions" role="tab" aria-selected="${activeTab === 'sessions'}">Sessions</button>
           </div>
 
           <section class="tab-panel ${activeTab === 'campaign' ? '' : 'is-hidden'}" data-panel="campaign">
@@ -163,6 +173,41 @@ export const renderCampaignDetailScreen = async ({
             </div>
           </section>
 
+          <section class="tab-panel ${activeTab === 'sessions' ? '' : 'is-hidden'}" data-panel="sessions">
+            <div class="split">
+              <div>
+                <h2>Sessions</h2>
+                <button id="new-session-button" class="secondary-button" type="button">New session</button>
+                <ul id="session-list" class="campaign-list">
+                  ${stateSessions
+                    .map(
+                      (session) => `
+                        <li>
+                          <button class="link-button ${selectedSessionId === session.id ? 'selected-link' : ''}" data-session-id="${session.id}">${escapeHtml(session.title)}</button>
+                          <span class="date">${formatDate(session.created_at)}</span>
+                        </li>
+                      `,
+                    )
+                    .join('')}
+                </ul>
+              </div>
+              <div>
+                <h2>${selectedSession ? 'Edit session' : 'Create session'}</h2>
+                <form id="session-form" class="details-form">
+                  <label for="session-title">Title</label>
+                  <input id="session-title" type="text" value="${escapeHtml(selectedSession?.title ?? '')}" required />
+                  <label for="session-details">Session details</label>
+                  <textarea id="session-details" rows="4">${escapeHtml(selectedSession?.sessionDetails ?? '')}</textarea>
+                  <label for="session-map">Map</label>
+                  <textarea id="session-map" rows="3">${escapeHtml(selectedSession?.map ?? '')}</textarea>
+                  <label for="session-config">Config (JSON object)</label>
+                  <textarea id="session-config" rows="4">${escapeHtml(JSON.stringify(selectedSession?.config ?? {}, null, 2))}</textarea>
+                  <button type="submit">${selectedSession ? 'Save session' : 'Create session'}</button>
+                </form>
+              </div>
+            </div>
+          </section>
+
           <p id="details-status" role="status" aria-live="polite"></p>
           <div id="generating-indicator" class="spinner-row ${isGeneratingMessage ? '' : 'is-hidden'}" aria-live="polite">
             <span class="spinner"></span>
@@ -205,7 +250,7 @@ export const renderCampaignDetailScreen = async ({
         }
 
         activeTab = nextTab;
-        draw(stateCampaign, statePlayers, stateMessages);
+        draw(stateCampaign, statePlayers, stateMessages, stateSessions);
       });
     }
 
@@ -215,7 +260,7 @@ export const renderCampaignDetailScreen = async ({
       try {
         const updated = await api.updateCampaignName(campaignId, campaignNameInput.value);
         status.textContent = 'Campaign updated.';
-        draw(updated, statePlayers, stateMessages);
+        draw(updated, statePlayers, stateMessages, stateSessions);
       } catch (error) {
         status.textContent =
           error instanceof Error ? error.message : 'Failed to update campaign.';
@@ -239,7 +284,7 @@ export const renderCampaignDetailScreen = async ({
       }
 
       selectedPlayerId = id;
-      draw(stateCampaign, statePlayers, stateMessages);
+      draw(stateCampaign, statePlayers, stateMessages, stateSessions);
     });
 
     newPlayerButton.addEventListener('click', () => {
@@ -248,7 +293,7 @@ export const renderCampaignDetailScreen = async ({
       }
 
       selectedPlayerId = null;
-      draw(stateCampaign, statePlayers, stateMessages);
+      draw(stateCampaign, statePlayers, stateMessages, stateSessions);
     });
 
     playerForm.addEventListener('submit', async (event) => {
@@ -271,14 +316,80 @@ export const renderCampaignDetailScreen = async ({
           status.textContent = 'Player updated.';
         }
 
-        const [refreshedPlayers, refreshedMessages] = await Promise.all([
+        const [refreshedPlayers, refreshedMessages, refreshedSessions] = await Promise.all([
           api.listPlayersByCampaign(campaignId),
           api.listMessagesByCampaign(campaignId),
+          api.listSessionsByCampaign(campaignId),
         ]);
-        draw(stateCampaign, refreshedPlayers, refreshedMessages);
+        draw(stateCampaign, refreshedPlayers, refreshedMessages, refreshedSessions);
       } catch (error) {
         status.textContent =
           error instanceof Error ? error.message : 'Failed to save player.';
+      }
+    });
+
+    const sessionList = queryRequired<HTMLUListElement>('#session-list');
+    const newSessionButton = queryRequired<HTMLButtonElement>('#new-session-button');
+    const sessionForm = queryRequired<HTMLFormElement>('#session-form');
+    const sessionTitleInput = queryRequired<HTMLInputElement>('#session-title');
+    const sessionDetailsInput = queryRequired<HTMLTextAreaElement>('#session-details');
+    const sessionMapInput = queryRequired<HTMLTextAreaElement>('#session-map');
+    const sessionConfigInput = queryRequired<HTMLTextAreaElement>('#session-config');
+
+    sessionList.addEventListener('click', (event) => {
+      if (blockNavigationIfGenerating()) {
+        return;
+      }
+
+      const target = event.target as HTMLElement;
+      const button = target.closest<HTMLButtonElement>('.link-button');
+      if (!button) {
+        return;
+      }
+
+      const id = Number(button.dataset.sessionId);
+      if (!Number.isFinite(id)) {
+        return;
+      }
+
+      selectedSessionId = id;
+      draw(stateCampaign, statePlayers, stateMessages, stateSessions);
+    });
+
+    newSessionButton.addEventListener('click', () => {
+      if (blockNavigationIfGenerating()) {
+        return;
+      }
+
+      selectedSessionId = null;
+      draw(stateCampaign, statePlayers, stateMessages, stateSessions);
+    });
+
+    sessionForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      try {
+        const input: SessionInput = {
+          title: sessionTitleInput.value,
+          config: parseConfig(sessionConfigInput.value),
+          sessionDetails: sessionDetailsInput.value,
+          map: sessionMapInput.value,
+        };
+
+        if (selectedSessionId === null) {
+          const created = await api.createSession(campaignId, input);
+          selectedSessionId = created.id;
+          status.textContent = 'Session created.';
+        } else {
+          await api.updateSession(selectedSessionId, input);
+          status.textContent = 'Session updated.';
+        }
+
+        const refreshedSessions = await api.listSessionsByCampaign(campaignId);
+        draw(stateCampaign, statePlayers, stateMessages, refreshedSessions);
+      } catch (error) {
+        status.textContent =
+          error instanceof Error ? error.message : 'Failed to save session.';
       }
     });
 
@@ -318,7 +429,7 @@ export const renderCampaignDetailScreen = async ({
       }
 
       selectedMessageId = id;
-      draw(stateCampaign, statePlayers, stateMessages);
+      draw(stateCampaign, statePlayers, stateMessages, stateSessions);
     });
 
     newMessageButton.addEventListener('click', () => {
@@ -327,7 +438,7 @@ export const renderCampaignDetailScreen = async ({
       }
 
       selectedMessageId = null;
-      draw(stateCampaign, statePlayers, stateMessages);
+      draw(stateCampaign, statePlayers, stateMessages, stateSessions);
     });
 
     clearMessagePlayersButton.addEventListener('click', () => {
@@ -351,12 +462,12 @@ export const renderCampaignDetailScreen = async ({
         const config = parseConfig(messageConfigInput.value);
 
         isGeneratingMessage = true;
-        draw(stateCampaign, statePlayers, stateMessages);
+        draw(stateCampaign, statePlayers, stateMessages, stateSessions);
 
         const generated = await api.generateMessageFromConfig(config);
 
         isGeneratingMessage = false;
-        draw(stateCampaign, statePlayers, stateMessages);
+        draw(stateCampaign, statePlayers, stateMessages, stateSessions);
 
         const refreshedMessageContentInput =
           queryRequired<HTMLTextAreaElement>('#message-content');
@@ -365,7 +476,7 @@ export const renderCampaignDetailScreen = async ({
         refreshedStatus.textContent = 'Message generated.';
       } catch (error) {
         isGeneratingMessage = false;
-        draw(stateCampaign, statePlayers, stateMessages);
+        draw(stateCampaign, statePlayers, stateMessages, stateSessions);
         const refreshedStatus = queryRequired<HTMLParagraphElement>('#details-status');
         refreshedStatus.textContent =
           error instanceof Error ? error.message : 'Failed to generate message.';
@@ -412,7 +523,8 @@ export const renderCampaignDetailScreen = async ({
         }
 
         const refreshedMessages = await api.listMessagesByCampaign(campaignId);
-        draw(stateCampaign, statePlayers, refreshedMessages);
+        const refreshedSessions = await api.listSessionsByCampaign(campaignId);
+        draw(stateCampaign, statePlayers, refreshedMessages, refreshedSessions);
       } catch (error) {
         status.textContent =
           error instanceof Error ? error.message : 'Failed to save message.';
@@ -420,5 +532,5 @@ export const renderCampaignDetailScreen = async ({
     });
   };
 
-  draw(campaign, players, messages);
+  draw(campaign, players, messages, sessions);
 };

@@ -4,6 +4,8 @@ import type {
   MessageInput,
   Player,
   PlayerInput,
+  Session,
+  SessionInput,
 } from './types';
 
 export const api = {
@@ -28,4 +30,10 @@ export const api = {
     window.api.generateMessageFromConfig(config) as Promise<string>,
   sendMessageToDiscord: (content: string) =>
     window.api.sendMessageToDiscord(content) as Promise<void>,
+  listSessionsByCampaign: (campaignId: number) =>
+    window.api.listSessionsByCampaign(campaignId) as Promise<Session[]>,
+  createSession: (campaignId: number, input: SessionInput) =>
+    window.api.createSession(campaignId, input) as Promise<Session>,
+  updateSession: (sessionId: number, input: SessionInput) =>
+    window.api.updateSession(sessionId, input) as Promise<Session>,
 };

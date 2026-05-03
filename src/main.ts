@@ -5,6 +5,7 @@ import { closeDatabase, initializeDatabase } from './main/database';
 import { registerCampaignIpc } from './main/ipc/campaign-ipc';
 import { registerMessageIpc } from './main/ipc/message-ipc';
 import { registerPlayerIpc } from './main/ipc/player-ipc';
+import { registerSessionIpc } from './main/ipc/session-ipc';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -42,6 +43,7 @@ app.on('ready', () => {
   registerCampaignIpc();
   registerPlayerIpc();
   registerMessageIpc();
+  registerSessionIpc();
   createWindow();
 });
 

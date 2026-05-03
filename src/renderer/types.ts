@@ -36,6 +36,23 @@ export type MessageInput = {
   playerIds: number[];
 };
 
+export type Session = {
+  id: number;
+  campaign_id: number;
+  title: string;
+  config: Record<string, unknown>;
+  sessionDetails: string;
+  map: string;
+  created_at: string;
+};
+
+export type SessionInput = {
+  title: string;
+  config: Record<string, unknown>;
+  sessionDetails: string;
+  map: string;
+};
+
 export type Route =
   | { name: 'campaign-list' }
   | { name: 'campaign-detail'; campaignId: number };
