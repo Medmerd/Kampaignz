@@ -56,10 +56,40 @@ button {
 .campaign-list li {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: 0.55rem 0;
   border-bottom: 1px solid #edf2f7;
 }
 
 .campaign-list .date {
   color: #64748b;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: #0f766e;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+.secondary-button {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  margin-bottom: 1rem;
+}
+
+.details-form {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.meta-row {
+  margin: 0.2rem 0;
 }

@@ -6,6 +6,9 @@ export type Campaign = {
   created_at: string;
 };
 
+const mapCampaign =
+  'SELECT id, name, created_at FROM campaigns WHERE id = ?';
+
 export const createCampaign = (name: string) => {
   const trimmedName = name.trim();
 
@@ -40,4 +43,36 @@ export const listCampaigns = () => {
   return db
     .prepare('SELECT id, name, created_at FROM campaigns ORDER BY id DESC')
     .all() as Campaign[];
+};
+
+export const getCampaignById = (id: number) => {
+  const db = getDatabase();
+
+  return db.prepare(mapCampaign).get(id) as Campaign | undefined;
+};
+
+export const updateCampaignName = (id: number, name: string) => {
+  const trimmedName = name.trim();
+
+  if (!trimmedName) {
+    throw new Error('Campaign name is required.');
+  }
+
+  const db = getDatabase();
+
+  const result = db
+    .prepare('UPDATE campaigns SET name = ? WHERE id = ?')
+    .run(trimmedName, id);
+
+  if (result.changes === 0) {
+    throw new Error('Campaign not found.');
+  }
+
+  const updated = db.prepare(mapCampaign).get(id) as Campaign | undefined;
+
+  if (!updated) {
+    throw new Error('Failed to update campaign.');
+  }
+
+  return updated;
 };
