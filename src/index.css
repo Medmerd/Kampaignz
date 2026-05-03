@@ -7,7 +7,7 @@ body {
 }
 
 .layout {
-  max-width: 44rem;
+  max-width: 1024px;
   margin: 0 auto;
   background: #ffffff;
   border: 1px solid #d9e1e7;
@@ -102,6 +102,14 @@ textarea {
   resize: vertical;
 }
 
+select {
+  font: inherit;
+  border-radius: 8px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #c8d3dd;
+  background: #ffffff;
+}
+
 .tabs {
   display: flex;
   gap: 0.5rem;
@@ -124,6 +132,41 @@ textarea {
   display: none;
 }
 
+.is-hidden {
+  display: none;
+}
+
+.spinner-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  color: #0f766e;
+}
+
+.spinner-row.is-hidden {
+  display: none;
+}
+
+.spinner {
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 2px solid #99f6e4;
+  border-top-color: #0f766e;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .split {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -134,7 +177,7 @@ textarea {
   font-weight: 600;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 1024px) {
   .split {
     grid-template-columns: 1fr;
   }

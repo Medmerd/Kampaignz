@@ -23,6 +23,21 @@ type PlayerInput = {
   config: Record<string, unknown>;
 };
 
+type Message = {
+  id: number;
+  campaign_id: number;
+  content: string;
+  config: Record<string, unknown>;
+  player_ids: number[];
+  created_at: string;
+};
+
+type MessageInput = {
+  content: string;
+  config: Record<string, unknown>;
+  playerIds: number[];
+};
+
 const api = {
   createCampaign: (name: string) =>
     ipcRenderer.invoke('campaigns:create', name) as Promise<Campaign>,
@@ -37,6 +52,16 @@ const api = {
     ipcRenderer.invoke('players:create', campaignId, input) as Promise<Player>,
   updatePlayer: (playerId: number, input: PlayerInput) =>
     ipcRenderer.invoke('players:update', playerId, input) as Promise<Player>,
+  listMessagesByCampaign: (campaignId: number) =>
+    ipcRenderer.invoke('messages:listByCampaign', campaignId) as Promise<Message[]>,
+  createMessage: (campaignId: number, input: MessageInput) =>
+    ipcRenderer.invoke('messages:create', campaignId, input) as Promise<Message>,
+  updateMessage: (messageId: number, input: MessageInput) =>
+    ipcRenderer.invoke('messages:update', messageId, input) as Promise<Message>,
+  generateMessageFromConfig: (config: Record<string, unknown>) =>
+    ipcRenderer.invoke('messages:generateFromConfig', config) as Promise<string>,
+  sendMessageToDiscord: (content: string) =>
+    ipcRenderer.invoke('messages:sendToDiscord', content) as Promise<void>,
 };
 
 contextBridge.exposeInMainWorld('api', api);

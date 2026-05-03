@@ -3,6 +3,7 @@ import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { closeDatabase, initializeDatabase } from './main/database';
 import { registerCampaignIpc } from './main/ipc/campaign-ipc';
+import { registerMessageIpc } from './main/ipc/message-ipc';
 import { registerPlayerIpc } from './main/ipc/player-ipc';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -40,6 +41,7 @@ app.on('ready', () => {
   initializeDatabase();
   registerCampaignIpc();
   registerPlayerIpc();
+  registerMessageIpc();
   createWindow();
 });
 

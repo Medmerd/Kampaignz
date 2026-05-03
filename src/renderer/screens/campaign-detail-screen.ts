@@ -1,6 +1,12 @@
 import { api } from '../api';
 import type { Router } from '../router';
-import type { Campaign, Player, PlayerInput } from '../types';
+import type {
+  Campaign,
+  Message,
+  MessageInput,
+  Player,
+  PlayerInput,
+} from '../types';
 import { escapeHtml, mount, queryRequired } from '../utils/dom';
 import { formatDate } from '../utils/format';
 
@@ -10,7 +16,7 @@ type Options = {
   campaignId: number;
 };
 
-type TabName = 'campaign' | 'players';
+type TabName = 'campaign' | 'players' | 'messages';
 
 const parseConfig = (raw: string): Record<string, unknown> => {
   const trimmed = raw.trim();
@@ -33,15 +39,26 @@ export const renderCampaignDetailScreen = async ({
 }: Options) => {
   const campaign = await api.getCampaign(campaignId);
   const players = await api.listPlayersByCampaign(campaignId);
+  const messages = await api.listMessagesByCampaign(campaignId);
 
   let activeTab: TabName = 'campaign';
   let selectedPlayerId: number | null = players.length ? players[0].id : null;
+  let selectedMessageId: number | null = messages.length ? messages[0].id : null;
+  let isGeneratingMessage = false;
 
-  const draw = (stateCampaign: Campaign, statePlayers: Player[]) => {
+  const draw = (
+    stateCampaign: Campaign,
+    statePlayers: Player[],
+    stateMessages: Message[],
+  ) => {
     const selectedPlayer =
       selectedPlayerId === null
         ? null
         : statePlayers.find((player) => player.id === selectedPlayerId) ?? null;
+    const selectedMessage =
+      selectedMessageId === null
+        ? null
+        : stateMessages.find((message) => message.id === selectedMessageId) ?? null;
 
     mount(
       root,
@@ -55,6 +72,7 @@ export const renderCampaignDetailScreen = async ({
           <div class="tabs" role="tablist" aria-label="Campaign sections">
             <button class="tab-button ${activeTab === 'campaign' ? 'is-active' : ''}" data-tab="campaign" role="tab" aria-selected="${activeTab === 'campaign'}">Campaign details</button>
             <button class="tab-button ${activeTab === 'players' ? 'is-active' : ''}" data-tab="players" role="tab" aria-selected="${activeTab === 'players'}">Player details</button>
+            <button class="tab-button ${activeTab === 'messages' ? 'is-active' : ''}" data-tab="messages" role="tab" aria-selected="${activeTab === 'messages'}">Messages</button>
           </div>
 
           <section class="tab-panel ${activeTab === 'campaign' ? '' : 'is-hidden'}" data-panel="campaign">
@@ -63,6 +81,51 @@ export const renderCampaignDetailScreen = async ({
               <input id="edit-campaign-name" type="text" value="${escapeHtml(stateCampaign.name)}" required />
               <button type="submit">Save changes</button>
             </form>
+          </section>
+
+          <section class="tab-panel ${activeTab === 'messages' ? '' : 'is-hidden'}" data-panel="messages">
+            <div class="split">
+              <div>
+                <h2>Messages</h2>
+                <button id="new-message-button" class="secondary-button" type="button">New message</button>
+                <ul id="message-list" class="campaign-list">
+                  ${stateMessages
+                    .map(
+                      (message) => `
+                        <li>
+                          <button class="link-button ${selectedMessageId === message.id ? 'selected-link' : ''}" data-message-id="${message.id}">${escapeHtml(message.content.slice(0, 42) || '(empty)')}</button>
+                          <span class="date">${formatDate(message.created_at)}</span>
+                        </li>
+                      `,
+                    )
+                    .join('')}
+                </ul>
+              </div>
+              <div>
+                <h2>${selectedMessage ? 'Edit message' : 'Create message'}</h2>
+                <form id="message-form" class="details-form">
+                  <label for="message-content">Message</label>
+                  <textarea id="message-content" rows="5">${escapeHtml(selectedMessage?.content ?? '')}</textarea>
+                  <button id="generate-message-button" class="secondary-button" type="button">Generate Message</button>
+                  <button id="send-message-button" class="secondary-button" type="button">Send to Discord</button>
+                  <label for="message-config">Config (JSON object)</label>
+                  <textarea id="message-config" rows="4">${escapeHtml(JSON.stringify(selectedMessage?.config ?? {}, null, 2))}</textarea>
+                  <label for="message-player-ids">Players</label>
+                  <select id="message-player-ids" multiple size="8">
+                    ${statePlayers
+                      .map((player) => {
+                        const selected = selectedMessage?.player_ids.includes(player.id)
+                          ? 'selected'
+                          : '';
+                        return `<option value="${player.id}" ${selected}>${escapeHtml(player.playerName)} (${escapeHtml(player.army)})</option>`;
+                      })
+                      .join('')}
+                  </select>
+                  <button id="clear-message-players" class="secondary-button" type="button">Clear player selection</button>
+                  <button type="submit">${selectedMessage ? 'Save message' : 'Create message'}</button>
+                </form>
+              </div>
+            </div>
           </section>
 
           <section class="tab-panel ${activeTab === 'players' ? '' : 'is-hidden'}" data-panel="players">
@@ -101,6 +164,10 @@ export const renderCampaignDetailScreen = async ({
           </section>
 
           <p id="details-status" role="status" aria-live="polite"></p>
+          <div id="generating-indicator" class="spinner-row ${isGeneratingMessage ? '' : 'is-hidden'}" aria-live="polite">
+            <span class="spinner"></span>
+            <span>Generating message with Gemini...</span>
+          </div>
         </main>
       `,
     );
@@ -119,18 +186,26 @@ export const renderCampaignDetailScreen = async ({
     const playerConfigInput = queryRequired<HTMLTextAreaElement>('#player-config');
 
     backButton.addEventListener('click', () => {
+      if (blockNavigationIfGenerating()) {
+        return;
+      }
+
       void router.goToCampaignList();
     });
 
     for (const button of tabButtons) {
       button.addEventListener('click', () => {
+        if (blockNavigationIfGenerating()) {
+          return;
+        }
+
         const nextTab = button.dataset.tab as TabName | undefined;
         if (!nextTab) {
           return;
         }
 
         activeTab = nextTab;
-        draw(stateCampaign, statePlayers);
+        draw(stateCampaign, statePlayers, stateMessages);
       });
     }
 
@@ -140,7 +215,7 @@ export const renderCampaignDetailScreen = async ({
       try {
         const updated = await api.updateCampaignName(campaignId, campaignNameInput.value);
         status.textContent = 'Campaign updated.';
-        draw(updated, statePlayers);
+        draw(updated, statePlayers, stateMessages);
       } catch (error) {
         status.textContent =
           error instanceof Error ? error.message : 'Failed to update campaign.';
@@ -148,6 +223,10 @@ export const renderCampaignDetailScreen = async ({
     });
 
     playerList.addEventListener('click', (event) => {
+      if (blockNavigationIfGenerating()) {
+        return;
+      }
+
       const target = event.target as HTMLElement;
       const button = target.closest<HTMLButtonElement>('.link-button');
       if (!button) {
@@ -160,12 +239,16 @@ export const renderCampaignDetailScreen = async ({
       }
 
       selectedPlayerId = id;
-      draw(stateCampaign, statePlayers);
+      draw(stateCampaign, statePlayers, stateMessages);
     });
 
     newPlayerButton.addEventListener('click', () => {
+      if (blockNavigationIfGenerating()) {
+        return;
+      }
+
       selectedPlayerId = null;
-      draw(stateCampaign, statePlayers);
+      draw(stateCampaign, statePlayers, stateMessages);
     });
 
     playerForm.addEventListener('submit', async (event) => {
@@ -188,14 +271,154 @@ export const renderCampaignDetailScreen = async ({
           status.textContent = 'Player updated.';
         }
 
-        const refreshedPlayers = await api.listPlayersByCampaign(campaignId);
-        draw(stateCampaign, refreshedPlayers);
+        const [refreshedPlayers, refreshedMessages] = await Promise.all([
+          api.listPlayersByCampaign(campaignId),
+          api.listMessagesByCampaign(campaignId),
+        ]);
+        draw(stateCampaign, refreshedPlayers, refreshedMessages);
       } catch (error) {
         status.textContent =
           error instanceof Error ? error.message : 'Failed to save player.';
       }
     });
+
+    const messageList = queryRequired<HTMLUListElement>('#message-list');
+    const newMessageButton = queryRequired<HTMLButtonElement>('#new-message-button');
+    const messageForm = queryRequired<HTMLFormElement>('#message-form');
+    const messageContentInput = queryRequired<HTMLTextAreaElement>('#message-content');
+    const generateMessageButton = queryRequired<HTMLButtonElement>('#generate-message-button');
+    const sendMessageButton = queryRequired<HTMLButtonElement>('#send-message-button');
+    const messageConfigInput = queryRequired<HTMLTextAreaElement>('#message-config');
+    const messagePlayerIdsInput = queryRequired<HTMLSelectElement>('#message-player-ids');
+    const clearMessagePlayersButton = queryRequired<HTMLButtonElement>('#clear-message-players');
+
+    const blockNavigationIfGenerating = () => {
+      if (!isGeneratingMessage) {
+        return false;
+      }
+
+      status.textContent = 'Please wait until message generation finishes.';
+      return true;
+    };
+
+    messageList.addEventListener('click', (event) => {
+      if (blockNavigationIfGenerating()) {
+        return;
+      }
+
+      const target = event.target as HTMLElement;
+      const button = target.closest<HTMLButtonElement>('.link-button');
+      if (!button) {
+        return;
+      }
+
+      const id = Number(button.dataset.messageId);
+      if (!Number.isFinite(id)) {
+        return;
+      }
+
+      selectedMessageId = id;
+      draw(stateCampaign, statePlayers, stateMessages);
+    });
+
+    newMessageButton.addEventListener('click', () => {
+      if (blockNavigationIfGenerating()) {
+        return;
+      }
+
+      selectedMessageId = null;
+      draw(stateCampaign, statePlayers, stateMessages);
+    });
+
+    clearMessagePlayersButton.addEventListener('click', () => {
+      for (const option of Array.from(messagePlayerIdsInput.options)) {
+        option.selected = false;
+      }
+    });
+
+    generateMessageButton.addEventListener('click', async () => {
+      try {
+        if (messageContentInput.value.trim()) {
+          const shouldReplace = window.confirm(
+            'This will replace the current message content. Continue?',
+          );
+
+          if (!shouldReplace) {
+            return;
+          }
+        }
+
+        const config = parseConfig(messageConfigInput.value);
+
+        isGeneratingMessage = true;
+        draw(stateCampaign, statePlayers, stateMessages);
+
+        const generated = await api.generateMessageFromConfig(config);
+
+        isGeneratingMessage = false;
+        draw(stateCampaign, statePlayers, stateMessages);
+
+        const refreshedMessageContentInput =
+          queryRequired<HTMLTextAreaElement>('#message-content');
+        const refreshedStatus = queryRequired<HTMLParagraphElement>('#details-status');
+        refreshedMessageContentInput.value = generated;
+        refreshedStatus.textContent = 'Message generated.';
+      } catch (error) {
+        isGeneratingMessage = false;
+        draw(stateCampaign, statePlayers, stateMessages);
+        const refreshedStatus = queryRequired<HTMLParagraphElement>('#details-status');
+        refreshedStatus.textContent =
+          error instanceof Error ? error.message : 'Failed to generate message.';
+      }
+    });
+
+    sendMessageButton.addEventListener('click', async () => {
+      const content = messageContentInput.value.trim();
+
+      if (!content) {
+        status.textContent = 'Message cannot be blank when sending to Discord.';
+        return;
+      }
+
+      try {
+        await api.sendMessageToDiscord(content);
+        status.textContent = 'Message sent to Discord.';
+      } catch (error) {
+        status.textContent =
+          error instanceof Error ? error.message : 'Failed to send message to Discord.';
+      }
+    });
+
+    messageForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      try {
+        const selectedOptions = Array.from(messagePlayerIdsInput.selectedOptions);
+        const input: MessageInput = {
+          content: messageContentInput.value,
+          config: parseConfig(messageConfigInput.value),
+          playerIds: selectedOptions
+            .map((option) => Number(option.value))
+            .filter(Number.isFinite),
+        };
+
+        if (selectedMessageId === null) {
+          const created = await api.createMessage(campaignId, input);
+          selectedMessageId = created.id;
+          status.textContent = 'Message created.';
+        } else {
+          await api.updateMessage(selectedMessageId, input);
+          status.textContent = 'Message updated.';
+        }
+
+        const refreshedMessages = await api.listMessagesByCampaign(campaignId);
+        draw(stateCampaign, statePlayers, refreshedMessages);
+      } catch (error) {
+        status.textContent =
+          error instanceof Error ? error.message : 'Failed to save message.';
+      }
+    });
   };
 
-  draw(campaign, players);
+  draw(campaign, players, messages);
 };
