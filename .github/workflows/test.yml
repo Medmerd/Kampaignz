@@ -1,0 +1,25 @@
+name: Run Tests
+
+on: [pull_request] # Triggers the workflow on every push or PR
+
+jobs:
+  test:
+    runs-on: ubuntu-latest # The environment (Linux, Windows, or macOS)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # Clones your code onto the runner
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4 # Installs the language environment
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Rebuild Vite
+        run: npm rebuild
+
+      - name: Run tests
+        run: npm test # The actual command that executes your test suite
