@@ -93,3 +93,49 @@ button {
 .meta-row {
   margin: 0.2rem 0;
 }
+
+textarea {
+  font: inherit;
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #c8d3dd;
+  resize: vertical;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.tab-button {
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+}
+
+.tab-button.is-active {
+  background: #0f766e;
+  color: #ffffff;
+  border-color: #0f766e;
+}
+
+.tab-panel.is-hidden {
+  display: none;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.selected-link {
+  font-weight: 600;
+}
+
+@media (max-width: 800px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
