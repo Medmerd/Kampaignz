@@ -5,5 +5,11 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/**/*.test.ts'],
     clearMocks: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
+      reportsDirectory: './coverage',
+      include: ['src/main/repositories/**/*.ts', 'src/main/ipc/**/*.ts'],
+    },
   },
 });
