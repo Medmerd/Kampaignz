@@ -1,7 +1,15 @@
 export type Campaign = {
   id: number;
   name: string;
+  expectedSessions: number;
+  config: Record<string, unknown>;
   created_at: string;
+};
+
+export type CampaignDetailsInput = {
+  name: string;
+  expectedSessions: number;
+  config: Record<string, unknown>;
 };
 
 export type Player = {
@@ -51,6 +59,23 @@ export type SessionInput = {
   config: Record<string, unknown>;
   sessionDetails: string;
   map: string;
+};
+
+export type Step = {
+  id: number;
+  campaign_id: number;
+  title: string;
+  notes: string;
+  config: Record<string, unknown>;
+  session_ids: number[];
+  created_at: string;
+};
+
+export type StepInput = {
+  title: string;
+  notes: string;
+  config: Record<string, unknown>;
+  sessionIds: number[];
 };
 
 export type Route =

@@ -12,7 +12,7 @@ import {
   createCampaign,
   getCampaignById,
   listCampaigns,
-  updateCampaignName,
+  updateCampaignDetails,
 } from '../../src/main/repositories/campaign-repo';
 
 describe('campaign-repo', () => {
@@ -21,7 +21,13 @@ describe('campaign-repo', () => {
   });
 
   it('creates a campaign and returns the inserted row', () => {
-    const inserted = { id: 11, name: 'Alpha', created_at: '2026-05-03T00:00:00Z' };
+    const inserted = {
+      id: 11,
+      name: 'Alpha',
+      expectedSessions: 1,
+      config: '{"prompt":"x"}',
+      created_at: '2026-05-03T00:00:00Z',
+    };
 
     const db = {
       prepare: vi.fn((sql: string) => {
@@ -36,33 +42,64 @@ describe('campaign-repo', () => {
 
     getDatabaseMock.mockReturnValue(db);
 
-    expect(createCampaign('  Alpha  ')).toEqual(inserted);
+    expect(createCampaign('  Alpha  ')).toEqual({
+      ...inserted,
+      config: { prompt: 'x' },
+    });
   });
 
   it('lists campaigns in descending order', () => {
-    const rows = [{ id: 1, name: 'A', created_at: '2026-05-03T00:00:00Z' }];
+    const rows = [
+      {
+        id: 1,
+        name: 'A',
+        expectedSessions: 1,
+        config: '{}',
+        created_at: '2026-05-03T00:00:00Z',
+      },
+    ];
     const db = {
       prepare: vi.fn(() => ({ all: vi.fn(() => rows) })),
     };
 
     getDatabaseMock.mockReturnValue(db);
 
-    expect(listCampaigns()).toEqual(rows);
+    expect(listCampaigns()).toEqual([
+      {
+        ...rows[0],
+        config: {},
+      },
+    ]);
   });
 
   it('gets campaign by id', () => {
-    const row = { id: 2, name: 'B', created_at: '2026-05-03T00:00:00Z' };
+    const row = {
+      id: 2,
+      name: 'B',
+      expectedSessions: 2,
+      config: '{"theme":"grim"}',
+      created_at: '2026-05-03T00:00:00Z',
+    };
     const db = {
       prepare: vi.fn(() => ({ get: vi.fn(() => row) })),
     };
 
     getDatabaseMock.mockReturnValue(db);
 
-    expect(getCampaignById(2)).toEqual(row);
+    expect(getCampaignById(2)).toEqual({
+      ...row,
+      config: { theme: 'grim' },
+    });
   });
 
-  it('updates campaign name and returns updated row', () => {
-    const updated = { id: 3, name: 'Updated', created_at: '2026-05-03T00:00:00Z' };
+  it('updates campaign details and returns updated row', () => {
+    const updated = {
+      id: 3,
+      name: 'Updated',
+      expectedSessions: 4,
+      config: '{"tone":"dark"}',
+      created_at: '2026-05-03T00:00:00Z',
+    };
     const db = {
       prepare: vi.fn((sql: string) => {
         if (sql.includes('UPDATE campaigns')) {
@@ -75,11 +112,19 @@ describe('campaign-repo', () => {
 
     getDatabaseMock.mockReturnValue(db);
 
-    expect(updateCampaignName(3, '  Updated  ')).toEqual(updated);
+    expect(
+      updateCampaignDetails(3, {
+        name: '  Updated  ',
+        expectedSessions: 4,
+        config: { tone: 'dark' },
+      }),
+    ).toEqual({ ...updated, config: { tone: 'dark' } });
   });
 
   it('throws on empty campaign name', () => {
     expect(() => createCampaign('   ')).toThrow('Campaign name is required.');
-    expect(() => updateCampaignName(1, '   ')).toThrow('Campaign name is required.');
+    expect(() =>
+      updateCampaignDetails(1, { name: '   ', expectedSessions: 1, config: {} }),
+    ).toThrow('Campaign name is required.');
   });
 });

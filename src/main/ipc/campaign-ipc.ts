@@ -3,7 +3,8 @@ import {
   createCampaign,
   getCampaignById,
   listCampaigns,
-  updateCampaignName,
+  updateCampaignDetails,
+  type CampaignDetailsInput,
 } from '../repositories/campaign-repo';
 
 export const registerCampaignIpc = () => {
@@ -23,7 +24,9 @@ export const registerCampaignIpc = () => {
     return campaign;
   });
 
-  ipcMain.handle('campaigns:updateName', (_event, id: number, name: string) =>
-    updateCampaignName(id, name),
+  ipcMain.handle(
+    'campaigns:updateDetails',
+    (_event, id: number, input: CampaignDetailsInput) =>
+      updateCampaignDetails(id, input),
   );
 };

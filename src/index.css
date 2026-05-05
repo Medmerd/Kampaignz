@@ -85,6 +85,11 @@ button {
   margin-bottom: 1rem;
 }
 
+.compact-button {
+  margin-bottom: 0;
+  padding: 0.35rem 0.55rem;
+}
+
 .details-form {
   display: grid;
   gap: 0.55rem;
@@ -171,6 +176,29 @@ select {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1200;
+}
+
+.modal-backdrop.is-hidden {
+  display: none;
+}
+
+.modal-card {
+  width: min(42rem, 100%);
+  background: #ffffff;
+  border: 1px solid #d9e1e7;
+  border-radius: 12px;
+  padding: 1rem;
 }
 
 .selected-link {

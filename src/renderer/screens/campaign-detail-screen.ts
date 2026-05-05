@@ -1,3 +1,6 @@
+import React from 'react';
+import { Empty, Steps, Tabs } from 'antd';
+import { createRoot } from 'react-dom/client';
 import { api } from '../api';
 import type { Router } from '../router';
 import type {
@@ -8,6 +11,8 @@ import type {
   PlayerInput,
   Session,
   SessionInput,
+  Step,
+  StepInput,
 } from '../types';
 import { escapeHtml, mount, queryRequired } from '../utils/dom';
 import { formatDate } from '../utils/format';
@@ -18,7 +23,7 @@ type Options = {
   campaignId: number;
 };
 
-type TabName = 'campaign' | 'players' | 'messages' | 'sessions';
+type TabName = 'campaign' | 'players' | 'messages' | 'sessions' | 'steps';
 
 const parseConfig = (raw: string): Record<string, unknown> => {
   const trimmed = raw.trim();
@@ -43,11 +48,14 @@ export const renderCampaignDetailScreen = async ({
   const players = await api.listPlayersByCampaign(campaignId);
   const messages = await api.listMessagesByCampaign(campaignId);
   const sessions = await api.listSessionsByCampaign(campaignId);
+  const steps = await api.listStepsByCampaign(campaignId);
 
   let activeTab: TabName = 'campaign';
   let selectedPlayerId: number | null = players.length ? players[0].id : null;
   let selectedMessageId: number | null = messages.length ? messages[0].id : null;
   let selectedSessionId: number | null = sessions.length ? sessions[0].id : null;
+  let selectedStepId: number | null = steps.length ? steps[0].id : null;
+  let isSessionModalOpen = false;
   let isGeneratingMessage = false;
 
   const draw = (
@@ -55,6 +63,7 @@ export const renderCampaignDetailScreen = async ({
     statePlayers: Player[],
     stateMessages: Message[],
     stateSessions: Session[],
+    stateSteps: Step[],
   ) => {
     const selectedPlayer =
       selectedPlayerId === null
@@ -68,6 +77,10 @@ export const renderCampaignDetailScreen = async ({
       selectedSessionId === null
         ? null
         : stateSessions.find((session) => session.id === selectedSessionId) ?? null;
+    const selectedStep =
+      selectedStepId === null
+        ? null
+        : stateSteps.find((step) => step.id === selectedStepId) ?? null;
 
     mount(
       root,
@@ -78,17 +91,16 @@ export const renderCampaignDetailScreen = async ({
           <p class="meta-row"><strong>ID:</strong> ${stateCampaign.id}</p>
           <p class="meta-row"><strong>Created:</strong> ${formatDate(stateCampaign.created_at)}</p>
 
-          <div class="tabs" role="tablist" aria-label="Campaign sections">
-            <button class="tab-button ${activeTab === 'campaign' ? 'is-active' : ''}" data-tab="campaign" role="tab" aria-selected="${activeTab === 'campaign'}">Campaign details</button>
-            <button class="tab-button ${activeTab === 'players' ? 'is-active' : ''}" data-tab="players" role="tab" aria-selected="${activeTab === 'players'}">Player details</button>
-            <button class="tab-button ${activeTab === 'messages' ? 'is-active' : ''}" data-tab="messages" role="tab" aria-selected="${activeTab === 'messages'}">Messages</button>
-            <button class="tab-button ${activeTab === 'sessions' ? 'is-active' : ''}" data-tab="sessions" role="tab" aria-selected="${activeTab === 'sessions'}">Sessions</button>
-          </div>
+          <div id="campaign-detail-tabs"></div>
 
           <section class="tab-panel ${activeTab === 'campaign' ? '' : 'is-hidden'}" data-panel="campaign">
             <form id="campaign-details-form" class="details-form">
               <label for="edit-campaign-name">Name</label>
               <input id="edit-campaign-name" type="text" value="${escapeHtml(stateCampaign.name)}" required />
+              <label for="edit-campaign-expected-sessions">Expected sessions</label>
+              <input id="edit-campaign-expected-sessions" type="number" min="1" step="1" value="${stateCampaign.expectedSessions}" required />
+              <label for="edit-campaign-config">Config (JSON object)</label>
+              <textarea id="edit-campaign-config" rows="4">${escapeHtml(JSON.stringify(stateCampaign.config ?? {}, null, 2))}</textarea>
               <button type="submit">Save changes</button>
             </form>
           </section>
@@ -174,24 +186,24 @@ export const renderCampaignDetailScreen = async ({
           </section>
 
           <section class="tab-panel ${activeTab === 'sessions' ? '' : 'is-hidden'}" data-panel="sessions">
-            <div class="split">
-              <div>
-                <h2>Sessions</h2>
-                <button id="new-session-button" class="secondary-button" type="button">New session</button>
-                <ul id="session-list" class="campaign-list">
-                  ${stateSessions
-                    .map(
-                      (session) => `
-                        <li>
-                          <button class="link-button ${selectedSessionId === session.id ? 'selected-link' : ''}" data-session-id="${session.id}">${escapeHtml(session.title)}</button>
-                          <span class="date">${formatDate(session.created_at)}</span>
-                        </li>
-                      `,
-                    )
-                    .join('')}
-                </ul>
-              </div>
-              <div>
+            <h2>Sessions</h2>
+            <button id="new-session-button" class="secondary-button" type="button">New session</button>
+            <ul id="session-list" class="campaign-list">
+              ${stateSessions
+                .map(
+                  (session) => `
+                    <li>
+                      <span class="name">${escapeHtml(session.title)}</span>
+                      <span class="date">${formatDate(session.created_at)}</span>
+                      <button class="secondary-button compact-button" data-session-id="${session.id}">Edit</button>
+                    </li>
+                  `,
+                )
+                .join('')}
+            </ul>
+
+            <div class="modal-backdrop ${isSessionModalOpen ? '' : 'is-hidden'}" id="session-modal-backdrop">
+              <div class="modal-card">
                 <h2>${selectedSession ? 'Edit session' : 'Create session'}</h2>
                 <form id="session-form" class="details-form">
                   <label for="session-title">Title</label>
@@ -202,7 +214,43 @@ export const renderCampaignDetailScreen = async ({
                   <textarea id="session-map" rows="3">${escapeHtml(selectedSession?.map ?? '')}</textarea>
                   <label for="session-config">Config (JSON object)</label>
                   <textarea id="session-config" rows="4">${escapeHtml(JSON.stringify(selectedSession?.config ?? {}, null, 2))}</textarea>
-                  <button type="submit">${selectedSession ? 'Save session' : 'Create session'}</button>
+                  <div class="row">
+                    <button id="cancel-session-modal" class="secondary-button" type="button">Cancel</button>
+                    <button type="submit">${selectedSession ? 'Save session' : 'Create session'}</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </section>
+
+          <section class="tab-panel ${activeTab === 'steps' ? '' : 'is-hidden'}" data-panel="steps">
+            <div class="split">
+              <div>
+                <h2>Campaign Steps</h2>
+                <button id="new-step-button" class="secondary-button" type="button">New step</button>
+                <div id="steps-control"></div>
+              </div>
+              <div>
+                <h2>${selectedStep ? 'Edit step' : 'Create step'}</h2>
+                <form id="step-form" class="details-form">
+                  <label for="step-title">Title</label>
+                  <input id="step-title" type="text" value="${escapeHtml(selectedStep?.title ?? '')}" required />
+                  <label for="step-session-ids">Sessions</label>
+                  <select id="step-session-ids" multiple size="8">
+                    ${stateSessions
+                      .map((session) => {
+                        const selected = selectedStep?.session_ids.includes(session.id)
+                          ? 'selected'
+                          : '';
+                        return `<option value="${session.id}" ${selected}>${escapeHtml(session.title)}</option>`;
+                      })
+                      .join('')}
+                  </select>
+                  <label for="step-notes">Notes</label>
+                  <textarea id="step-notes" rows="4">${escapeHtml(selectedStep?.notes ?? '')}</textarea>
+                  <label for="step-config">Config (JSON object)</label>
+                  <textarea id="step-config" rows="4">${escapeHtml(JSON.stringify(selectedStep?.config ?? {}, null, 2))}</textarea>
+                  <button type="submit">${selectedStep ? 'Save step' : 'Create step'}</button>
                 </form>
               </div>
             </div>
@@ -221,7 +269,11 @@ export const renderCampaignDetailScreen = async ({
     const status = queryRequired<HTMLParagraphElement>('#details-status');
     const campaignForm = queryRequired<HTMLFormElement>('#campaign-details-form');
     const campaignNameInput = queryRequired<HTMLInputElement>('#edit-campaign-name');
-    const tabButtons = root.querySelectorAll<HTMLButtonElement>('.tab-button');
+    const campaignExpectedSessionsInput = queryRequired<HTMLInputElement>(
+      '#edit-campaign-expected-sessions',
+    );
+    const campaignConfigInput = queryRequired<HTMLTextAreaElement>('#edit-campaign-config');
+    const tabsHost = queryRequired<HTMLDivElement>('#campaign-detail-tabs');
     const playerList = queryRequired<HTMLUListElement>('#player-list');
     const newPlayerButton = queryRequired<HTMLButtonElement>('#new-player-button');
     const playerForm = queryRequired<HTMLFormElement>('#player-form');
@@ -238,29 +290,128 @@ export const renderCampaignDetailScreen = async ({
       void router.goToCampaignList();
     });
 
-    for (const button of tabButtons) {
-      button.addEventListener('click', () => {
-        if (blockNavigationIfGenerating()) {
-          return;
+    createRoot(tabsHost).render(
+      React.createElement(Tabs, {
+        activeKey: activeTab,
+        onChange: (nextTab: string) => {
+          if (blockNavigationIfGenerating()) {
+            return;
+          }
+
+          if (
+            nextTab === 'campaign' ||
+            nextTab === 'players' ||
+            nextTab === 'messages' ||
+            nextTab === 'sessions' ||
+            nextTab === 'steps'
+          ) {
+            activeTab = nextTab;
+            draw(stateCampaign, statePlayers, stateMessages, stateSessions, stateSteps);
+          }
+        },
+        items: [
+          { key: 'campaign', label: 'Campaign details' },
+          { key: 'players', label: 'Player details' },
+          { key: 'messages', label: 'Messages' },
+          { key: 'sessions', label: 'Sessions' },
+          { key: 'steps', label: 'Steps' },
+        ],
+      }),
+    );
+
+    const stepsHost = queryRequired<HTMLDivElement>('#steps-control');
+    const newStepButton = queryRequired<HTMLButtonElement>('#new-step-button');
+    const stepForm = queryRequired<HTMLFormElement>('#step-form');
+    const stepTitleInput = queryRequired<HTMLInputElement>('#step-title');
+    const stepSessionIdsInput = queryRequired<HTMLSelectElement>('#step-session-ids');
+    const stepNotesInput = queryRequired<HTMLTextAreaElement>('#step-notes');
+    const stepConfigInput = queryRequired<HTMLTextAreaElement>('#step-config');
+    createRoot(stepsHost).render(
+      stateSteps.length === 0
+        ? React.createElement(Empty, {
+            description: 'No steps for this campaign yet',
+          })
+        : React.createElement(Steps, {
+            direction: 'vertical',
+            current:
+              selectedStepId === null
+                ? stateSteps.length - 1
+                : Math.max(
+                    0,
+                    stateSteps.findIndex((step) => step.id === selectedStepId),
+                  ),
+            onChange: (currentIndex: number) => {
+              if (blockNavigationIfGenerating()) {
+                return;
+              }
+
+              const nextStep = stateSteps[currentIndex];
+              if (!nextStep) {
+                return;
+              }
+
+              selectedStepId = nextStep.id;
+              draw(stateCampaign, statePlayers, stateMessages, stateSessions, stateSteps);
+            },
+            items: stateSteps.map((step) => ({
+              status: step.session_ids.length > 0 ? undefined : 'error',
+              title: step.title,
+              subTitle: step.session_ids.length > 0 ? undefined : 'Not initialized',
+              description: step.notes || `Created ${formatDate(step.created_at)}`,
+            })),
+          }),
+    );
+
+    newStepButton.addEventListener('click', () => {
+      if (blockNavigationIfGenerating()) {
+        return;
+      }
+
+      selectedStepId = null;
+      draw(stateCampaign, statePlayers, stateMessages, stateSessions, stateSteps);
+    });
+
+    stepForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      try {
+        const input: StepInput = {
+          title: stepTitleInput.value,
+          sessionIds: Array.from(stepSessionIdsInput.selectedOptions)
+            .map((option) => Number(option.value))
+            .filter(Number.isFinite),
+          notes: stepNotesInput.value,
+          config: parseConfig(stepConfigInput.value),
+        };
+
+        if (selectedStepId === null) {
+          const created = await api.createStep(campaignId, input);
+          selectedStepId = created.id;
+          status.textContent = 'Step created.';
+        } else {
+          await api.updateStep(selectedStepId, input);
+          status.textContent = 'Step updated.';
         }
 
-        const nextTab = button.dataset.tab as TabName | undefined;
-        if (!nextTab) {
-          return;
-        }
-
-        activeTab = nextTab;
-        draw(stateCampaign, statePlayers, stateMessages, stateSessions);
-      });
-    }
+        const refreshedSteps = await api.listStepsByCampaign(campaignId);
+        draw(stateCampaign, statePlayers, stateMessages, stateSessions, refreshedSteps);
+      } catch (error) {
+        status.textContent =
+          error instanceof Error ? error.message : 'Failed to save step.';
+      }
+    });
 
     campaignForm.addEventListener('submit', async (event) => {
       event.preventDefault();
 
       try {
-        const updated = await api.updateCampaignName(campaignId, campaignNameInput.value);
+        const updated = await api.updateCampaignDetails(campaignId, {
+          name: campaignNameInput.value,
+          expectedSessions: Number(campaignExpectedSessionsInput.value),
+          config: parseConfig(campaignConfigInput.value),
+        });
         status.textContent = 'Campaign updated.';
-        draw(updated, statePlayers, stateMessages, stateSessions);
+        draw(updated, statePlayers, stateMessages, stateSessions, stateSteps);
       } catch (error) {
         status.textContent =
           error instanceof Error ? error.message : 'Failed to update campaign.';
@@ -284,7 +435,7 @@ export const renderCampaignDetailScreen = async ({
       }
 
       selectedPlayerId = id;
-      draw(stateCampaign, statePlayers, stateMessages, stateSessions);
+      draw(stateCampaign, statePlayers, stateMessages, stateSessions, stateSteps);
     });
 
     newPlayerButton.addEventListener('click', () => {
@@ -293,7 +444,7 @@ export const renderCampaignDetailScreen = async ({
       }
 
       selectedPlayerId = null;
-      draw(stateCampaign, statePlayers, stateMessages, stateSessions);
+      draw(stateCampaign, statePlayers, stateMessages, stateSessions, stateSteps);
     });
 
     playerForm.addEventListener('submit', async (event) => {
@@ -316,12 +467,19 @@ export const renderCampaignDetailScreen = async ({
           status.textContent = 'Player updated.';
         }
 
-        const [refreshedPlayers, refreshedMessages, refreshedSessions] = await Promise.all([
+        const [refreshedPlayers, refreshedMessages, refreshedSessions, refreshedSteps] = await Promise.all([
           api.listPlayersByCampaign(campaignId),
           api.listMessagesByCampaign(campaignId),
           api.listSessionsByCampaign(campaignId),
+          api.listStepsByCampaign(campaignId),
         ]);
-        draw(stateCampaign, refreshedPlayers, refreshedMessages, refreshedSessions);
+        draw(
+          stateCampaign,
+          refreshedPlayers,
+          refreshedMessages,
+          refreshedSessions,
+          refreshedSteps,
+        );
       } catch (error) {
         status.textContent =
           error instanceof Error ? error.message : 'Failed to save player.';
@@ -330,6 +488,8 @@ export const renderCampaignDetailScreen = async ({
 
     const sessionList = queryRequired<HTMLUListElement>('#session-list');
     const newSessionButton = queryRequired<HTMLButtonElement>('#new-session-button');
+    const sessionModalBackdrop = queryRequired<HTMLDivElement>('#session-modal-backdrop');
+    const cancelSessionModalButton = queryRequired<HTMLButtonElement>('#cancel-session-modal');
     const sessionForm = queryRequired<HTMLFormElement>('#session-form');
     const sessionTitleInput = queryRequired<HTMLInputElement>('#session-title');
     const sessionDetailsInput = queryRequired<HTMLTextAreaElement>('#session-details');
@@ -342,7 +502,7 @@ export const renderCampaignDetailScreen = async ({
       }
 
       const target = event.target as HTMLElement;
-      const button = target.closest<HTMLButtonElement>('.link-button');
+      const button = target.closest<HTMLButtonElement>('button[data-session-id]');
       if (!button) {
         return;
       }
@@ -353,7 +513,8 @@ export const renderCampaignDetailScreen = async ({
       }
 
       selectedSessionId = id;
-      draw(stateCampaign, statePlayers, stateMessages, stateSessions);
+      isSessionModalOpen = true;
+      draw(stateCampaign, statePlayers, stateMessages, stateSessions, stateSteps);
     });
 
     newSessionButton.addEventListener('click', () => {
@@ -362,7 +523,22 @@ export const renderCampaignDetailScreen = async ({
       }
 
       selectedSessionId = null;
-      draw(stateCampaign, statePlayers, stateMessages, stateSessions);
+      isSessionModalOpen = true;
+      draw(stateCampaign, statePlayers, stateMessages, stateSessions, stateSteps);
+    });
+
+    cancelSessionModalButton.addEventListener('click', () => {
+      isSessionModalOpen = false;
+      draw(stateCampaign, statePlayers, stateMessages, stateSessions, stateSteps);
+    });
+
+    sessionModalBackdrop.addEventListener('click', (event) => {
+      if (event.target !== sessionModalBackdrop) {
+        return;
+      }
+
+      isSessionModalOpen = false;
+      draw(stateCampaign, statePlayers, stateMessages, stateSessions, stateSteps);
     });
 
     sessionForm.addEventListener('submit', async (event) => {
@@ -385,8 +561,11 @@ export const renderCampaignDetailScreen = async ({
           status.textContent = 'Session updated.';
         }
 
+        isSessionModalOpen = false;
+
         const refreshedSessions = await api.listSessionsByCampaign(campaignId);
-        draw(stateCampaign, statePlayers, stateMessages, refreshedSessions);
+        const refreshedSteps = await api.listStepsByCampaign(campaignId);
+        draw(stateCampaign, statePlayers, stateMessages, refreshedSessions, refreshedSteps);
       } catch (error) {
         status.textContent =
           error instanceof Error ? error.message : 'Failed to save session.';
@@ -429,7 +608,7 @@ export const renderCampaignDetailScreen = async ({
       }
 
       selectedMessageId = id;
-      draw(stateCampaign, statePlayers, stateMessages, stateSessions);
+      draw(stateCampaign, statePlayers, stateMessages, stateSessions, stateSteps);
     });
 
     newMessageButton.addEventListener('click', () => {
@@ -438,7 +617,7 @@ export const renderCampaignDetailScreen = async ({
       }
 
       selectedMessageId = null;
-      draw(stateCampaign, statePlayers, stateMessages, stateSessions);
+      draw(stateCampaign, statePlayers, stateMessages, stateSessions, stateSteps);
     });
 
     clearMessagePlayersButton.addEventListener('click', () => {
@@ -462,12 +641,12 @@ export const renderCampaignDetailScreen = async ({
         const config = parseConfig(messageConfigInput.value);
 
         isGeneratingMessage = true;
-        draw(stateCampaign, statePlayers, stateMessages, stateSessions);
+        draw(stateCampaign, statePlayers, stateMessages, stateSessions, stateSteps);
 
         const generated = await api.generateMessageFromConfig(config);
 
         isGeneratingMessage = false;
-        draw(stateCampaign, statePlayers, stateMessages, stateSessions);
+        draw(stateCampaign, statePlayers, stateMessages, stateSessions, stateSteps);
 
         const refreshedMessageContentInput =
           queryRequired<HTMLTextAreaElement>('#message-content');
@@ -476,7 +655,7 @@ export const renderCampaignDetailScreen = async ({
         refreshedStatus.textContent = 'Message generated.';
       } catch (error) {
         isGeneratingMessage = false;
-        draw(stateCampaign, statePlayers, stateMessages, stateSessions);
+        draw(stateCampaign, statePlayers, stateMessages, stateSessions, stateSteps);
         const refreshedStatus = queryRequired<HTMLParagraphElement>('#details-status');
         refreshedStatus.textContent =
           error instanceof Error ? error.message : 'Failed to generate message.';
@@ -524,7 +703,8 @@ export const renderCampaignDetailScreen = async ({
 
         const refreshedMessages = await api.listMessagesByCampaign(campaignId);
         const refreshedSessions = await api.listSessionsByCampaign(campaignId);
-        draw(stateCampaign, statePlayers, refreshedMessages, refreshedSessions);
+        const refreshedSteps = await api.listStepsByCampaign(campaignId);
+        draw(stateCampaign, statePlayers, refreshedMessages, refreshedSessions, refreshedSteps);
       } catch (error) {
         status.textContent =
           error instanceof Error ? error.message : 'Failed to save message.';
@@ -532,5 +712,5 @@ export const renderCampaignDetailScreen = async ({
     });
   };
 
-  draw(campaign, players, messages, sessions);
+  draw(campaign, players, messages, sessions, steps);
 };

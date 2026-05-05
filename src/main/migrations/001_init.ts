@@ -7,6 +7,8 @@ export const migration001Init: Migration = {
       CREATE TABLE IF NOT EXISTS campaigns (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
+        expectedSessions INTEGER NOT NULL DEFAULT 1,
+        config TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(config)),
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
 

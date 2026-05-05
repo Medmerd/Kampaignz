@@ -1,19 +1,22 @@
 import type {
   Campaign,
+  CampaignDetailsInput,
   Message,
   MessageInput,
   Player,
   PlayerInput,
   Session,
   SessionInput,
+  Step,
+  StepInput,
 } from './types';
 
 export const api = {
   createCampaign: (name: string) => window.api.createCampaign(name) as Promise<Campaign>,
   listCampaigns: () => window.api.listCampaigns() as Promise<Campaign[]>,
   getCampaign: (id: number) => window.api.getCampaign(id) as Promise<Campaign>,
-  updateCampaignName: (id: number, name: string) =>
-    window.api.updateCampaignName(id, name) as Promise<Campaign>,
+  updateCampaignDetails: (id: number, input: CampaignDetailsInput) =>
+    window.api.updateCampaignDetails(id, input) as Promise<Campaign>,
   listPlayersByCampaign: (campaignId: number) =>
     window.api.listPlayersByCampaign(campaignId) as Promise<Player[]>,
   createPlayer: (campaignId: number, input: PlayerInput) =>
@@ -36,4 +39,10 @@ export const api = {
     window.api.createSession(campaignId, input) as Promise<Session>,
   updateSession: (sessionId: number, input: SessionInput) =>
     window.api.updateSession(sessionId, input) as Promise<Session>,
+  listStepsByCampaign: (campaignId: number) =>
+    window.api.listStepsByCampaign(campaignId) as Promise<Step[]>,
+  createStep: (campaignId: number, input: StepInput) =>
+    window.api.createStep(campaignId, input) as Promise<Step>,
+  updateStep: (stepId: number, input: StepInput) =>
+    window.api.updateStep(stepId, input) as Promise<Step>,
 };
