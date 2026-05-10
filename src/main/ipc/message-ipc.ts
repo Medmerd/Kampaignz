@@ -3,8 +3,9 @@ import {
   createMessage,
   listMessagesByCampaign,
   updateMessage,
-  type MessageInput,
 } from '../repositories/message-repo';
+import { MessageInput } from '../../renderer/types';
+
 import { generateMessageFromConfig } from '../services/message-generator';
 import { sendMessageToDiscord } from '../services/discord-message-sender';
 

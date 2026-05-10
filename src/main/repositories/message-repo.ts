@@ -1,19 +1,20 @@
 import { getDatabase } from '../database';
+import { Message, MessageInput } from '../../renderer/types';
 
-export type Message = {
-  id: number;
-  campaign_id: number;
-  content: string;
-  config: Record<string, unknown>;
-  player_ids: number[];
-  created_at: string;
-};
+// export type Message = {
+//   id: number;
+//   campaign_id: number;
+//   content: string;
+//   config: Record<string, unknown>;
+//   player_ids: number[];
+//   created_at: string;
+// };
 
-export type MessageInput = {
-  content: string;
-  config: Record<string, unknown>;
-  playerIds: number[];
-};
+// export type MessageInput = {
+//   content: string;
+//   config: Record<string, unknown>;
+//   playerIds: number[];
+// };
 
 type MessageRow = {
   id: number;
@@ -34,15 +35,15 @@ const getPlayerIdsForMessage = (messageId: number) => {
 
 const mapMessage = (row: MessageRow): Message => ({
   ...row,
-  config: JSON.parse(row.config) as Record<string, unknown>,
+  config: JSON.parse(row.config), // as Record<string, unknown>,
   player_ids: getPlayerIdsForMessage(row.id),
 });
 
-const hasConfigContent = (config: Record<string, unknown>) =>
-  Object.keys(config).length > 0;
+//const hasConfigContent = (config: Record<string, unknown>) =>
+const hasConfigContent = (config: string) => Object.keys(config).length > 0;
 
 const validateAndNormalizePlayerIds = (campaignId: number, playerIds: number[]) => {
-  const normalized = Array.from(new Set(playerIds.map((id) => Number(id)).filter(Number.isFinite)));
+  const normalized = playerIds && playerIds.length > 0 ? Array.from(new Set(playerIds.map((id) => Number(id)).filter(Number.isFinite))) : [];
   if (normalized.length === 0) {
     return normalized;
   }

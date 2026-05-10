@@ -183,10 +183,11 @@ select {
   inset: 0;
   background: rgba(15, 23, 42, 0.4);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 1rem;
   z-index: 1200;
+  overflow-y: auto;
 }
 
 .modal-backdrop.is-hidden {
@@ -194,11 +195,22 @@ select {
 }
 
 .modal-card {
-  width: min(42rem, 100%);
+  width: min(1024px, 100%);
   background: #ffffff;
   border: 1px solid #d9e1e7;
   border-radius: 12px;
   padding: 1rem;
+  max-height: min(800px, calc(100vh - 2rem));
+  margin: 0 auto;
+  overflow-y: auto;
+}
+
+.twocolumns {
+  display: flex;
+}
+
+.frame {
+  border: solid 1px #ffffff;
 }
 
 .selected-link {

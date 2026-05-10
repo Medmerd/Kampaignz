@@ -29,18 +29,26 @@ export type PlayerInput = {
   config: Record<string, unknown>;
 };
 
+export type JSONString<T> = string & { __brand: T };
+
+export interface messageConfig {
+  prompt: string;
+}
+
+
 export type Message = {
   id: number;
   campaign_id: number;
   content: string;
-  config: Record<string, unknown>;
+  config: string; // Record<string, unknown> | JSONString<messageConfig>;
   player_ids: number[];
   created_at: string;
 };
 
+
 export type MessageInput = {
   content: string;
-  config: Record<string, unknown>;
+  config: string; // Record<string, unknown> | JSONString<messageConfig>;
   playerIds: number[];
 };
 
@@ -59,6 +67,12 @@ export type SessionInput = {
   config: Record<string, unknown>;
   sessionDetails: string;
   map: string;
+};
+
+export type SessionMatch = {
+  matchType: 1 | 2 | 4;
+  teamAPlayerIds: number[];
+  teamBPlayerIds: number[];
 };
 
 export type Step = {
