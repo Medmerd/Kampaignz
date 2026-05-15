@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import { Message, MessageInput } from './renderer/types';
 
 type Campaign = {
   id: number;
@@ -31,20 +32,20 @@ type PlayerInput = {
   config: Record<string, unknown>;
 };
 
-type Message = {
-  id: number;
-  campaign_id: number;
-  content: string;
-  config: Record<string, unknown>;
-  player_ids: number[];
-  created_at: string;
-};
+// type Message = {
+//   id: number;
+//   campaign_id: number;
+//   content: string;
+//   config: Record<string, unknown>;
+//   player_ids: number[];
+//   created_at: string;
+// };
 
-type MessageInput = {
-  content: string;
-  config: Record<string, unknown>;
-  playerIds: number[];
-};
+// type MessageInput = {
+//   content: string;
+//   config: Record<string, unknown>;
+//   playerIds: number[];
+// };
 
 type Session = {
   id: number;
@@ -80,6 +81,12 @@ type StepInput = {
   sessionIds: number[];
 };
 
+type SessionMatch = {
+  matchType: 1 | 2 | 4;
+  teamAPlayerIds: number[];
+  teamBPlayerIds: number[];
+};
+
 const api = {
   createCampaign: (name: string) =>
     ipcRenderer.invoke('campaigns:create', name) as Promise<Campaign>,
@@ -110,6 +117,10 @@ const api = {
     ipcRenderer.invoke('sessions:create', campaignId, input) as Promise<Session>,
   updateSession: (sessionId: number, input: SessionInput) =>
     ipcRenderer.invoke('sessions:update', sessionId, input) as Promise<Session>,
+  listSessionMatches: (sessionId: number) =>
+    ipcRenderer.invoke('sessions:listMatches', sessionId) as Promise<SessionMatch[]>,
+  replaceSessionMatches: (sessionId: number, matches: SessionMatch[]) =>
+    ipcRenderer.invoke('sessions:replaceMatches', sessionId, matches) as Promise<void>,
   listStepsByCampaign: (campaignId: number) =>
     ipcRenderer.invoke('steps:listByCampaign', campaignId) as Promise<Step[]>,
   createStep: (campaignId: number, input: StepInput) =>

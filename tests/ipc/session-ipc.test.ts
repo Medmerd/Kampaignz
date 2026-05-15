@@ -31,6 +31,6 @@ describe('session-ipc', () => {
 
   it('registers expected handlers', () => {
     registerSessionIpc();
-    expect(handleMock).toHaveBeenCalledTimes(3);
+    expect(handleMock).toHaveBeenCalledTimes(5);
   });
 });

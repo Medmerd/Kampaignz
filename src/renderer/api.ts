@@ -6,6 +6,7 @@ import type {
   Player,
   PlayerInput,
   Session,
+  SessionMatch,
   SessionInput,
   Step,
   StepInput,
@@ -39,6 +40,10 @@ export const api = {
     window.api.createSession(campaignId, input) as Promise<Session>,
   updateSession: (sessionId: number, input: SessionInput) =>
     window.api.updateSession(sessionId, input) as Promise<Session>,
+  listSessionMatches: (sessionId: number) =>
+    window.api.listSessionMatches(sessionId) as Promise<SessionMatch[]>,
+  replaceSessionMatches: (sessionId: number, matches: SessionMatch[]) =>
+    window.api.replaceSessionMatches(sessionId, matches) as Promise<void>,
   listStepsByCampaign: (campaignId: number) =>
     window.api.listStepsByCampaign(campaignId) as Promise<Step[]>,
   createStep: (campaignId: number, input: StepInput) =>

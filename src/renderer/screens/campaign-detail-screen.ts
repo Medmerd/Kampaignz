@@ -10,6 +10,7 @@ import type {
   Player,
   PlayerInput,
   Session,
+  SessionMatch,
   SessionInput,
   Step,
   StepInput,
@@ -25,6 +26,20 @@ type Options = {
 
 type TabName = 'campaign' | 'players' | 'messages' | 'sessions' | 'steps';
 
+type MatchType = '1' | '2' | '4';
+
+type UiSessionMatch = {
+  matchType: MatchType;
+  teamAPlayerIds: number[];
+  teamBPlayerIds: number[];
+};
+
+const teamSizeByMatchType: Record<MatchType, number> = {
+  '1': 1,
+  '2': 2,
+  '4': 4,
+};
+
 const parseConfig = (raw: string): Record<string, unknown> => {
   const trimmed = raw.trim();
   if (!trimmed) {
@@ -39,6 +54,20 @@ const parseConfig = (raw: string): Record<string, unknown> => {
   return parsed as Record<string, unknown>;
 };
 
+const toUiMatches = (matches: SessionMatch[]): UiSessionMatch[] =>
+  matches.map((match) => ({
+    matchType: String(match.matchType) as MatchType,
+    teamAPlayerIds: match.teamAPlayerIds,
+    teamBPlayerIds: match.teamBPlayerIds,
+  }));
+
+const toDbMatches = (matches: UiSessionMatch[]): SessionMatch[] =>
+  matches.map((match) => ({
+    matchType: Number(match.matchType) as 1 | 2 | 4,
+    teamAPlayerIds: match.teamAPlayerIds,
+    teamBPlayerIds: match.teamBPlayerIds,
+  }));
+
 export const renderCampaignDetailScreen = async ({
   root,
   router,
@@ -49,6 +78,14 @@ export const renderCampaignDetailScreen = async ({
   const messages = await api.listMessagesByCampaign(campaignId);
   const sessions = await api.listSessionsByCampaign(campaignId);
   const steps = await api.listStepsByCampaign(campaignId);
+  const sessionMatchesBySessionId = Object.fromEntries(
+    await Promise.all(
+      sessions.map(async (session) => [
+        session.id,
+        toUiMatches(await api.listSessionMatches(session.id)),
+      ]),
+    ),
+  ) as Record<number, UiSessionMatch[]>;
 
   let activeTab: TabName = 'campaign';
   let selectedPlayerId: number | null = players.length ? players[0].id : null;
@@ -208,12 +245,36 @@ export const renderCampaignDetailScreen = async ({
                 <form id="session-form" class="details-form">
                   <label for="session-title">Title</label>
                   <input id="session-title" type="text" value="${escapeHtml(selectedSession?.title ?? '')}" required />
-                  <label for="session-details">Session details</label>
-                  <textarea id="session-details" rows="4">${escapeHtml(selectedSession?.sessionDetails ?? '')}</textarea>
-                  <label for="session-map">Map</label>
-                  <textarea id="session-map" rows="3">${escapeHtml(selectedSession?.map ?? '')}</textarea>
-                  <label for="session-config">Config (JSON object)</label>
-                  <textarea id="session-config" rows="4">${escapeHtml(JSON.stringify(selectedSession?.config ?? {}, null, 2))}</textarea>
+                  <div class="twocolumns">
+                    <div class="frame">
+                      <label for="session-details">Session details</label>
+                      <textarea id="session-details" rows="4">${escapeHtml(selectedSession?.sessionDetails ?? '')}</textarea>
+                      <label for="session-map">Map</label>
+                      <textarea id="session-map" rows="3">${escapeHtml(selectedSession?.map ?? '')}</textarea>
+                      <label for="session-config">Config (JSON object)</label>
+                      <textarea id="session-config" rows="4">${escapeHtml(JSON.stringify(selectedSession?.config ?? {}, null, 2))}</textarea>
+                    </div>
+                    <div class="frame">
+                      <h3>Match builder</h3>
+                      <div id="session-match-builder-controls">
+                        <label for="session-match-type">Match type</label>
+                        <select id="session-match-type">
+                          <option value="1">1 vs 1</option>
+                          <option value="2">2 vs 2</option>
+                          <option value="4">4 vs 4</option>
+                        </select>
+                        <button id="generate-session-matches" class="secondary-button" type="button">Generate Matches</button>
+                        <label for="session-match-team-a">Team A players</label>
+                        <select id="session-match-team-a" multiple size="6"></select>
+                        <label for="session-match-team-b">Team B players</label>
+                        <select id="session-match-team-b" multiple size="6"></select>
+                        <button id="add-session-match" class="secondary-button" type="button">Add match</button>
+                      </div>
+                      <ul id="session-match-list" class="campaign-list"></ul>
+                      <p><strong>Unmatched players</strong></p>
+                      <ul id="session-unmatched-list" class="campaign-list"></ul>
+                    </div>
+                  </div>
                   <div class="row">
                     <button id="cancel-session-modal" class="secondary-button" type="button">Cancel</button>
                     <button type="submit">${selectedSession ? 'Save session' : 'Create session'}</button>
@@ -495,6 +556,91 @@ export const renderCampaignDetailScreen = async ({
     const sessionDetailsInput = queryRequired<HTMLTextAreaElement>('#session-details');
     const sessionMapInput = queryRequired<HTMLTextAreaElement>('#session-map');
     const sessionConfigInput = queryRequired<HTMLTextAreaElement>('#session-config');
+    const sessionMatchTypeInput = queryRequired<HTMLSelectElement>('#session-match-type');
+    const sessionMatchBuilderControls = queryRequired<HTMLDivElement>(
+      '#session-match-builder-controls',
+    );
+    const generateSessionMatchesButton = queryRequired<HTMLButtonElement>(
+      '#generate-session-matches',
+    );
+    const sessionMatchTeamAInput = queryRequired<HTMLSelectElement>('#session-match-team-a');
+    const sessionMatchTeamBInput = queryRequired<HTMLSelectElement>('#session-match-team-b');
+    const addSessionMatchButton = queryRequired<HTMLButtonElement>('#add-session-match');
+    const sessionMatchList = queryRequired<HTMLUListElement>('#session-match-list');
+    const sessionUnmatchedList = queryRequired<HTMLUListElement>('#session-unmatched-list');
+
+    let draftSessionMatches: UiSessionMatch[] = selectedSession
+      ? [...(sessionMatchesBySessionId[selectedSession.id] ?? [])]
+      : [];
+
+    const getUsedPlayerIds = () =>
+      new Set(
+        draftSessionMatches.flatMap((match) => [
+          ...match.teamAPlayerIds,
+          ...match.teamBPlayerIds,
+        ]),
+      );
+
+    const getAvailablePlayers = () => {
+      const used = getUsedPlayerIds();
+      return statePlayers.filter((player) => !used.has(player.id));
+    };
+
+    const renderSessionMatchList = () => {
+      sessionMatchList.innerHTML = draftSessionMatches
+        .map((match, index) => {
+          const toName = (id: number) =>
+            statePlayers.find((player) => player.id === id)?.playerName ?? `#${id}`;
+          const teamA = match.teamAPlayerIds.map(toName).join(', ');
+          const teamB = match.teamBPlayerIds.map(toName).join(', ');
+          const label = `${match.matchType}v${match.matchType}`;
+
+          return `
+            <li>
+              <span class="name">${label}: ${escapeHtml(teamA)} vs ${escapeHtml(teamB)}</span>
+              <button class="secondary-button compact-button" data-remove-match-index="${index}" type="button">Remove</button>
+            </li>
+          `;
+        })
+        .join('');
+    };
+
+    const renderUnmatchedPlayers = () => {
+      const unmatched = getAvailablePlayers();
+
+      sessionUnmatchedList.innerHTML = unmatched.length
+        ? unmatched
+            .map(
+              (player) =>
+                `<li><span class="name">${escapeHtml(player.playerName)}</span><span class="date">${escapeHtml(player.army)}</span></li>`,
+            )
+            .join('')
+        : '<li><span class="name">All players assigned</span></li>';
+    };
+
+    const renderMatchSelectors = () => {
+      const available = getAvailablePlayers();
+      const options = available
+        .map(
+          (player) =>
+            `<option value="${player.id}">${escapeHtml(player.playerName)} (${escapeHtml(player.army)})</option>`,
+        )
+        .join('');
+
+      sessionMatchTeamAInput.innerHTML = options;
+      sessionMatchTeamBInput.innerHTML = options;
+    };
+
+    const refreshMatchBuilder = () => {
+      renderSessionMatchList();
+      renderUnmatchedPlayers();
+      renderMatchSelectors();
+
+      const allPlayersMatched = getAvailablePlayers().length === 0;
+      sessionMatchBuilderControls.classList.toggle('is-hidden', allPlayersMatched);
+    };
+
+    refreshMatchBuilder();
 
     sessionList.addEventListener('click', (event) => {
       if (blockNavigationIfGenerating()) {
@@ -541,6 +687,103 @@ export const renderCampaignDetailScreen = async ({
       draw(stateCampaign, statePlayers, stateMessages, stateSessions, stateSteps);
     });
 
+    sessionMatchList.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement;
+      const button = target.closest<HTMLButtonElement>('button[data-remove-match-index]');
+      if (!button) {
+        return;
+      }
+
+      const index = Number(button.dataset.removeMatchIndex);
+      if (!Number.isFinite(index)) {
+        return;
+      }
+
+      draftSessionMatches = draftSessionMatches.filter((_, i) => i !== index);
+      refreshMatchBuilder();
+    });
+
+    generateSessionMatchesButton.addEventListener('click', () => {
+      const matchType = sessionMatchTypeInput.value as MatchType;
+      const teamSize = teamSizeByMatchType[matchType];
+
+      if (!teamSize) {
+        status.textContent = 'Invalid match type.';
+        return;
+      }
+
+      const players = getAvailablePlayers();
+      const playersPerMatch = teamSize * 2;
+      const matchCount = Math.floor(players.length / playersPerMatch);
+
+      if (matchCount === 0) {
+        status.textContent = 'Not enough unmatched players for this match type.';
+        return;
+      }
+
+      for (let i = 0; i < matchCount; i += 1) {
+        const base = i * playersPerMatch;
+        const teamAPlayerIds = players
+          .slice(base, base + teamSize)
+          .map((player) => player.id);
+        const teamBPlayerIds = players
+          .slice(base + teamSize, base + playersPerMatch)
+          .map((player) => player.id);
+
+        draftSessionMatches.push({
+          matchType,
+          teamAPlayerIds,
+          teamBPlayerIds,
+        });
+      }
+
+      refreshMatchBuilder();
+      status.textContent = `Generated ${matchCount} ${matchType}v${matchType} matches.`;
+    });
+
+    addSessionMatchButton.addEventListener('click', () => {
+      const matchType = sessionMatchTypeInput.value as MatchType;
+      const teamSize = teamSizeByMatchType[matchType];
+
+      if (!teamSize) {
+        status.textContent = 'Invalid match type.';
+        return;
+      }
+
+      const teamAPlayerIds = Array.from(sessionMatchTeamAInput.selectedOptions)
+        .map((option) => Number(option.value))
+        .filter(Number.isFinite);
+      const teamBPlayerIds = Array.from(sessionMatchTeamBInput.selectedOptions)
+        .map((option) => Number(option.value))
+        .filter(Number.isFinite);
+
+      if (teamAPlayerIds.length !== teamSize || teamBPlayerIds.length !== teamSize) {
+        status.textContent = `Select exactly ${teamSize} players per team for ${matchType}v${matchType}.`;
+        return;
+      }
+
+      const combinedCurrent = [...teamAPlayerIds, ...teamBPlayerIds];
+      if (new Set(combinedCurrent).size !== combinedCurrent.length) {
+        status.textContent = 'A player cannot be selected more than once in a match.';
+        return;
+      }
+
+      const alreadyUsed = getUsedPlayerIds();
+      const duplicate = combinedCurrent.find((id) => alreadyUsed.has(id));
+      if (duplicate) {
+        status.textContent = 'A player cannot be selected more than once in this session.';
+        return;
+      }
+
+      draftSessionMatches.push({
+        matchType,
+        teamAPlayerIds,
+        teamBPlayerIds,
+      });
+      refreshMatchBuilder();
+      status.textContent = 'Match added.';
+    });
+
     sessionForm.addEventListener('submit', async (event) => {
       event.preventDefault();
 
@@ -555,9 +798,16 @@ export const renderCampaignDetailScreen = async ({
         if (selectedSessionId === null) {
           const created = await api.createSession(campaignId, input);
           selectedSessionId = created.id;
+          await api.replaceSessionMatches(created.id, toDbMatches(draftSessionMatches));
+          sessionMatchesBySessionId[created.id] = [...draftSessionMatches];
           status.textContent = 'Session created.';
         } else {
           await api.updateSession(selectedSessionId, input);
+          await api.replaceSessionMatches(
+            selectedSessionId,
+            toDbMatches(draftSessionMatches),
+          );
+          sessionMatchesBySessionId[selectedSessionId] = [...draftSessionMatches];
           status.textContent = 'Session updated.';
         }
 
