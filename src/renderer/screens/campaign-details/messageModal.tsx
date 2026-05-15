@@ -1,171 +1,145 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { ReactNode } from 'react';
-import { ChangeHandler, SubmitHandler, useForm, Controller } from "react-hook-form";
-import { Collapse, Select, Modal, Space } from 'antd';
-import type { CollapseProps, SelectProps } from 'antd';
+import { useForm, SubmitHandler, Controller } from "react-hook-form";
+import { Select, Modal, Space, Button } from 'antd';
+import type { SelectProps } from 'antd';
 import { api } from '../../api';
-import { escapeHtml } from '../../utils/dom';
-import { formatDate } from '../../utils/format';
-import type { Message, Player, MessageInput, JSONString, messageConfig } from '../../types';
+import type { Message, MessageInput, NotifyFunction } from '../../types';
 
 type Options = {
-    message: Message,
-    messageId: number,
+    message: Message | null;
+    messageId: number;
     campaignId: number;
     isOpen: boolean;
     onClose: () => void;
+    notify?: NotifyFunction;
 };
 
 const MessageModal = (options: Options) => {
-    if (options.isOpen === false) {
-        return (<></>);
-    }
-
-    const {campaignId, messageId} = options;
-    const [selectedCampaignId, setSelectedCampaignId] = useState<number>(campaignId);
-    const [selectedMessageId, setSelectedMessageId] = useState<number>(messageId); 
-    const [selectedMessage, setSelectedMessage] = useState<Message>();
-
+    const { campaignId, messageId, isOpen, onClose, notify, message } = options;
     const [players, setPlayers] = useState<SelectProps['options']>([]);
-
-    const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
 
-    const { watch, control, register, reset, handleSubmit } = useForm<Message>({ defaultValues: {
-        campaign_id: campaignId,
-        id: messageId,
-        content: '',
-        config: '{}',
-        player_ids: [],
-       }});
+    const { control, register, reset, handleSubmit } = useForm<Message>({
+        defaultValues: {
+            campaign_id: campaignId,
+            id: messageId,
+            content: '',
+            config: '{}',
+            player_ids: [],
+        }
+    });
 
     const loadData = async () => {
-        const players = await api.listPlayersByCampaign(options.campaignId)
-        const formatted: SelectProps['options'] = [];
-        players.forEach((player) =>  formatted.push({label: player.playerName, value: player.id}));
-        console.log('players', formatted);
+        if (!isOpen) return;
 
-        setPlayers(formatted)
-        setSelectedMessage(options.message);
-        setSelectedMessageId(options.message ? options.message.id : undefined);
-        setLoading(false)
-
-        if (options.message) {
-            const {config, content, ...rest} = options.message;
-            let configStr = '{}';
-
-            try {
-                configStr = config;
-            } catch (e) {
-                configStr = '{}';
+        try {
+            const playerList = await api.listPlayersByCampaign(campaignId);
+            const formatted = playerList.map(player => ({ label: player.playerName, value: player.id }));
+            setPlayers(formatted);
+            
+            if (message) {
+                const { config, ...rest } = message;
+                let configStr = '{}';
+                try {
+                    configStr = config || '{}';
+                } catch (e) {
+                    configStr = '{}';
+                }
+                reset({ ...rest, config: configStr });
+            } else {
+                reset({
+                    campaign_id: campaignId,
+                    id: -1,
+                    content: '',
+                    config: '{}',
+                    player_ids: [],
+                });
             }
-
-            reset({...rest, config: configStr});
-        }
-    }
-
-    const saveMessage: (data: Message) => Promise<void> = async (data: Message) => {
-        const {content, config, player_ids: playerIds} = data;
-        const input: MessageInput = {content, config, playerIds};
-        let messageId = selectedMessageId;
-
-        console.log("save", selectedCampaignId, messageId, input);
-        if (!messageId || messageId <= 0) {
-            const created = await api.createMessage(selectedCampaignId, input);
-            messageId = created.id;
-            setSelectedMessageId(created.id);
-            // status.textContent = 'Message created.';
-        } else {
-            await api.updateMessage(messageId, input);
-            // status.textContent = 'Message updated.';
+        } catch (error) {
+            console.error('Failed to load message modal data', error);
+        } finally {
+            setLoading(false);
         }
     };
 
     useEffect(() => {
         loadData();
-    }, [selectedCampaignId, selectedMessageId, selectedMessage]);
+    }, [isOpen, campaignId, messageId, message]);
 
-    const collapseItems: CollapseProps['items'] = [
-        {
-            key: '1',
-            label: 'Message',
-            children:
-            <div style={{display: "grid"}}>
-                <textarea id="message-content" 
-                    name="messageContent" rows={15} 
-                    key="messageContent"
-                    defaultValue={selectedMessage?.content}
-                    {...register('content')}
-                    ></textarea>
-                <button id="generate-message-button" className="secondary-button" type="button">Generate Message</button>
-                <button id="send-message-button" className="secondary-button" type="button">Send to Discord</button>
-            </div>,
-        },
-        {
-            key: '2',
-            label: 'Config',
-            forceRender: true,
-            children: 
-            <div style={{display: "grid"}}>
-                <textarea id="message-config" 
-                    name="messageConfig" 
-                    key="messageConfig"
-                    rows={10} 
-                    defaultValue={selectedMessage?.config}
-                    {...register('config')}
-                    ></textarea>
-            </div>,
-        },
-    ];
-    
-    /** callbacks */
-    const onFormClose: () => void = useCallback(() => {
-        options.onClose();
-    }, []);
-    const onSave: () => void = useCallback(() => {
-        handleSubmit(onMessageSubmit);        
-    },[]);
-    const onMessageSubmit: SubmitHandler<Message> = useCallback((data) => {
-        if (saveMessage(data)) {
-            onFormClose();
+    const onSubmit: SubmitHandler<Message> = useCallback(async (data) => {
+        const { content, config, player_ids: playerIds } = data;
+        const input: MessageInput = { content, config, playerIds };
+
+        try {
+            if (!messageId || messageId <= 0) {
+                await api.createMessage(campaignId, input);
+                if (notify) notify('success', 'Message created', 'The message was created successfully.');
+            } else {
+                await api.updateMessage(messageId, input);
+                if (notify) notify('success', 'Message updated', 'The message was updated successfully.');
+            }
+            onClose();
+        } catch (error) {
+            console.error('Error saving message:', error);
+            if (notify) notify('error', 'Error saving message', (error as Error).message || String(error));
         }
-    }, []);
+    }, [campaignId, messageId, notify, onClose]);
 
-    if (loading) {
-        return (<div>Loading...</div>);
+    if (loading && isOpen) {
+        return null;
     }
 
     return (
         <Modal
-            title="Basic Modal"
+            title={messageId && messageId > 0 ? 'Edit message' : 'Create message'}
             closable={false}
-            open={options.isOpen}
-            width={'90%'}
-            footer={null}>
-                <h2>{selectedMessage ? 'Edit message' : 'Create message'}</h2>
-                <form id='messageForm' style={{display: 'flex', flexDirection: 'column', flexFlow: 'column wrap'}} className='detailsForm' onSubmit={handleSubmit(onMessageSubmit)}>
-                    
-                    <Collapse items={collapseItems} defaultActiveKey={1} />
-                 
-                    <label htmlFor="message-player-ids">Players</label>
-                    <Controller name='player_ids' 
-                        control={control}
-                        
-                    
-                        render={({ field, fieldState }) => (
-                            <Select {...field} 
+            onCancel={onClose}
+            open={isOpen}
+            width={720}
+            footer={null}
+        >
+            <form id='messageForm' className='detailsForm' onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                
+                <label htmlFor="message-content">Message Content</label>
+                <textarea 
+                    id="message-content" 
+                    rows={8} 
+                    {...register('content')}
+                />
+
+                <label htmlFor="message-player-ids">Associated Players</label>
+                <Controller 
+                    name='player_ids' 
+                    control={control}
+                    render={({ field }) => (
+                        <Select 
+                            {...field} 
+                            id="message-player-ids"
                             style={{ width: '100%' }}
                             options={players}    
-                            mode="multiple"/>
-                        )}
-                    />
-                    <Space style={{padding: '10px 0 0 0'}}>
-                        <button type="submit">{selectedMessage ? 'Save message' : 'Create message'}</button>
-                        <button id="close-message" type="button" onClick={onFormClose}>Close</button>
-                    </Space>
-                </form>
+                            mode="multiple"
+                        />
+                    )}
+                />
+
+                <label htmlFor="message-config">Config (JSON object)</label>
+                <textarea 
+                    id="message-config" 
+                    rows={4} 
+                    {...register('config')}
+                />
+
+                <Space style={{ padding: '10px 0 0 0', justifyContent: 'flex-start', width: '100%' }}>
+                    <Button type="primary" htmlType="submit">
+                        {messageId && messageId > 0 ? 'Save message' : 'Create message'}
+                    </Button>
+                    <Button type="default" onClick={onClose}>Cancel</Button>
+                    <Button type="primary" ghost>Generate Message</Button>
+                    <Button type="primary" ghost>Send to Discord</Button>
+                </Space>
+            </form>
         </Modal>
     );
-}
+};
 
 export default MessageModal;
