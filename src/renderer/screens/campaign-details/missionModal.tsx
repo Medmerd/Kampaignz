@@ -2,23 +2,29 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm, SubmitHandler } from "react-hook-form";
 import { Modal, Space, Button, Select, Typography, Divider, Row, Col } from 'antd';
 import { api } from '../../api';
-import type { Session, SessionInput, SessionModalOptions, Player, SessionMatch } from '../../types';
+import type { 
+    Session as Mission, 
+    SessionInput as MissionInput, 
+    SessionModalOptions as MissionModalOptions, 
+    Player, 
+    SessionMatch as MissionMatch 
+} from '../../types';
 
 type MatchType = 1 | 2 | 4;
 
-const SessionModal = (options: SessionModalOptions) => {
-    const { campaignId, sessionId, isOpen, onClose, notify } = options;
+const MissionModal = (options: MissionModalOptions) => {
+    const { campaignId, sessionId: missionId, isOpen, onClose, notify } = options;
     
     const [players, setPlayers] = useState<Player[]>([]);
-    const [draftMatches, setDraftMatches] = useState<SessionMatch[]>([]);
+    const [draftMatches, setDraftMatches] = useState<MissionMatch[]>([]);
     
     // Match Builder State
     const [matchType, setMatchType] = useState<MatchType>(1);
     const [teamA, setTeamA] = useState<number[]>([]);
     const [teamB, setTeamB] = useState<number[]>([]);
-    const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+    const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
 
-    const { register, reset, handleSubmit } = useForm<SessionInput>({ 
+    const { register, reset, handleSubmit } = useForm<MissionInput>({ 
         defaultValues: {
             title: '',
             sessionDetails: '',
@@ -34,22 +40,22 @@ const SessionModal = (options: SessionModalOptions) => {
             const fetchedPlayers = await api.listPlayersByCampaign(campaignId);
             setPlayers(fetchedPlayers);
 
-            if (sessionId) {
+            if (missionId) {
                 // Wait for both to load
-                const [sessionDataList, matchData] = await Promise.all([
+                const [missionDataList, matchData] = await Promise.all([
                     api.listSessionsByCampaign(campaignId),
-                    api.listSessionMatches(sessionId)
+                    api.listSessionMatches(missionId)
                 ]);
                 
-                const sessionData = sessionDataList.find(s => s.id === sessionId);
+                const missionData = missionDataList.find(m => m.id === missionId);
 
-                if (sessionData) {
-                    setSelectedSession(sessionData);
+                if (missionData) {
+                    setSelectedMission(missionData);
                     reset({
-                        title: sessionData.title,
-                        sessionDetails: sessionData.sessionDetails,
-                        map: sessionData.map,
-                        config: sessionData.config || '{}',
+                        title: missionData.title,
+                        sessionDetails: missionData.sessionDetails,
+                        map: missionData.map,
+                        config: missionData.config || '{}',
                     });
                 }
                 if (matchData) {
@@ -61,7 +67,7 @@ const SessionModal = (options: SessionModalOptions) => {
                     setDraftMatches(normalizedMatches);
                 }
             } else {
-                setSelectedSession(null);
+                setSelectedMission(null);
                 setDraftMatches([]);
                 reset({
                     title: '',
@@ -71,14 +77,14 @@ const SessionModal = (options: SessionModalOptions) => {
                 });
             }
         } catch (error) {
-            console.error('Error loading session data:', error);
-            if (notify) notify('error', 'Failed to load session details', (error as Error).message);
+            console.error('Error loading mission data:', error);
+            if (notify) notify('error', 'Failed to load mission details', (error as Error).message);
         }
     };
 
     useEffect(() => {
         loadData();
-    }, [isOpen, sessionId, campaignId]);
+    }, [isOpen, missionId, campaignId]);
 
     // Computed states for Match Builder
     const usedPlayerIds = useMemo(() => {
@@ -108,7 +114,7 @@ const SessionModal = (options: SessionModalOptions) => {
             return;
         }
 
-        const newMatches: SessionMatch[] = [];
+        const newMatches: MissionMatch[] = [];
         for (let i = 0; i < matchCount; i++) {
             const baseIndex = i * playersPerMatch;
             const teamAPlayerIds = availablePlayers.slice(baseIndex, baseIndex + teamSize).map(p => p.id);
@@ -135,7 +141,7 @@ const SessionModal = (options: SessionModalOptions) => {
 
         const duplicate = combined.find(id => usedPlayerIds.has(id));
         if (duplicate) {
-            if (notify) notify('warning', 'A player cannot be selected more than once in this session.');
+            if (notify) notify('warning', 'A player cannot be selected more than once in this mission.');
             return;
         }
 
@@ -155,55 +161,55 @@ const SessionModal = (options: SessionModalOptions) => {
         setTeamB([]);
     }, [onClose]);
 
-    const onSubmit: SubmitHandler<SessionInput> = useCallback(async (data) => {
+    const onSubmit: SubmitHandler<MissionInput> = useCallback(async (data) => {
         try {
-            let currentSessionId = sessionId;
-            if (!currentSessionId) {
+            let currentMissionId = missionId;
+            if (!currentMissionId) {
                 const created = await api.createSession(campaignId, data);
-                currentSessionId = created.id;
-                if (notify) notify('success', 'Session created successfully');
+                currentMissionId = created.id;
+                if (notify) notify('success', 'Mission created successfully');
             } else {
-                await api.updateSession(currentSessionId, data);
-                if (notify) notify('success', 'Session updated successfully');
+                await api.updateSession(currentMissionId, data);
+                if (notify) notify('success', 'Mission updated successfully');
             }
 
             // Save matches
-            if (currentSessionId) {
-                await api.replaceSessionMatches(currentSessionId, draftMatches);
+            if (currentMissionId) {
+                await api.replaceSessionMatches(currentMissionId, draftMatches);
             }
 
             onFormClose();
         } catch (error) {
-            console.error('Error saving session:', error);
-            if (notify) notify('error', 'Error saving session', (error as Error).message);
+            console.error('Error saving mission:', error);
+            if (notify) notify('error', 'Error saving mission', (error as Error).message);
         }
-    }, [sessionId, campaignId, draftMatches, notify, onFormClose]);
+    }, [missionId, campaignId, draftMatches, notify, onFormClose]);
 
     return (
         <Modal
-            title={selectedSession ? 'Edit session' : 'Create session'}
+            title={selectedMission ? 'Edit mission' : 'Create mission'}
             closable={false}
             onCancel={onFormClose}
             open={isOpen}
             width={720}
             footer={null}
         >
-            <form id='sessionForm' className='detailsForm' onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <form id='missionForm' className='detailsForm' onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 
-                <label htmlFor="session-title">Title</label>
-                <input id="session-title" type="text" required {...register('title')} />
+                <label htmlFor="mission-title">Title</label>
+                <input id="mission-title" type="text" required {...register('title')} />
 
                 <Row gutter={24}>
                     <Col span={12}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <label htmlFor="session-details">Session details</label>
-                            <textarea id="session-details" rows={4} {...register('sessionDetails')}></textarea>
+                            <label htmlFor="mission-details">Mission details</label>
+                            <textarea id="mission-details" rows={4} {...register('sessionDetails')}></textarea>
                             
-                            <label htmlFor="session-map" style={{ marginTop: 12 }}>Map</label>
-                            <textarea id="session-map" rows={3} {...register('map')}></textarea>
+                            <label htmlFor="mission-map" style={{ marginTop: 12 }}>Map</label>
+                            <textarea id="mission-map" rows={3} {...register('map')}></textarea>
                             
-                            <label htmlFor="session-config" style={{ marginTop: 12 }}>Config (JSON object)</label>
-                            <textarea id="session-config" rows={4} {...register('config')}></textarea>
+                            <label htmlFor="mission-config" style={{ marginTop: 12 }}>Config (JSON object)</label>
+                            <textarea id="mission-config" rows={4} {...register('config')}></textarea>
                         </div>
                     </Col>
                     
@@ -211,10 +217,10 @@ const SessionModal = (options: SessionModalOptions) => {
                         <div style={{ background: '#f5f5f5', padding: 16, borderRadius: 8 }}>
                             <Typography.Title level={4} style={{ marginTop: 0 }}>Match builder</Typography.Title>
                             
-                            <div id="session-match-builder-controls" style={{ display: availablePlayers.length > 0 ? 'flex' : 'none', flexDirection: 'column', gap: 8 }}>
-                                <label htmlFor="session-match-type">Match type</label>
+                            <div id="mission-match-builder-controls" style={{ display: availablePlayers.length > 0 ? 'flex' : 'none', flexDirection: 'column', gap: 8 }}>
+                                <label htmlFor="mission-match-type">Match type</label>
                                 <Select 
-                                    id="session-match-type" 
+                                    id="mission-match-type" 
                                     value={matchType} 
                                     onChange={(v) => setMatchType(v as MatchType)}
                                     options={[
@@ -228,7 +234,7 @@ const SessionModal = (options: SessionModalOptions) => {
                                 
                                 <Divider style={{ margin: '12px 0' }} />
                                 
-                                <label htmlFor="session-match-team-a">Team A players</label>
+                                <label htmlFor="mission-match-team-a">Team A players</label>
                                 <Select 
                                     mode="multiple" 
                                     options={playerOptions}
@@ -236,7 +242,7 @@ const SessionModal = (options: SessionModalOptions) => {
                                     onChange={setTeamA}
                                 />
                                 
-                                <label htmlFor="session-match-team-b">Team B players</label>
+                                <label htmlFor="mission-match-team-b">Team B players</label>
                                 <Select 
                                     mode="multiple" 
                                     options={playerOptions}
@@ -290,7 +296,7 @@ const SessionModal = (options: SessionModalOptions) => {
 
                 <Space style={{ padding: '10px 0 0 0', justifyContent: 'flex-start', width: '100%' }}>
                     <Button type="primary" htmlType="submit">
-                        {selectedSession ? 'Save session' : 'Create session'}
+                        {selectedMission ? 'Save mission' : 'Create mission'}
                     </Button>
                     <Button type="default" onClick={onFormClose}>Cancel</Button>
                 </Space>
@@ -299,4 +305,4 @@ const SessionModal = (options: SessionModalOptions) => {
     )
 }
 
-export default SessionModal;
+export default MissionModal;

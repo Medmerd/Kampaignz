@@ -4,16 +4,9 @@ export type Campaign = {
   id: number;
   name: string;
   expectedSessions: number;
-  config: Record<string, unknown>;
+  config: string;
   created_at: string;
 };
-
-type CampaignRow = Omit<Campaign, 'config'> & { config: string };
-
-const mapCampaign = (row: CampaignRow): Campaign => ({
-  ...row,
-  config: JSON.parse(row.config) as Record<string, unknown>,
-});
 
 export const createCampaign = (name: string) => {
   const trimmedName = name.trim();
@@ -33,13 +26,13 @@ export const createCampaign = (name: string) => {
       .prepare(
         'SELECT id, name, expectedSessions, config, created_at FROM campaigns WHERE id = ?',
       )
-      .get(result.lastInsertRowid) as CampaignRow | undefined;
+      .get(result.lastInsertRowid) as Campaign | undefined;
 
     if (!created) {
       throw new Error('Failed to create campaign.');
     }
 
-    return mapCampaign(created);
+    return created;
   });
 
   return transaction(trimmedName);
@@ -52,8 +45,7 @@ export const listCampaigns = () => {
     .prepare(
       'SELECT id, name, expectedSessions, config, created_at FROM campaigns ORDER BY id DESC',
     )
-    .all()
-    .map((row) => mapCampaign(row as CampaignRow));
+    .all() as Campaign[];
 };
 
 export const getCampaignById = (id: number) => {
@@ -63,15 +55,15 @@ export const getCampaignById = (id: number) => {
     .prepare(
       'SELECT id, name, expectedSessions, config, created_at FROM campaigns WHERE id = ?',
     )
-    .get(id) as CampaignRow | undefined;
+    .get(id) as Campaign | undefined;
 
-  return row ? mapCampaign(row) : undefined;
+  return row;
 };
 
 export type CampaignDetailsInput = {
   name: string;
   expectedSessions: number;
-  config: Record<string, unknown>;
+  config: string;
 };
 
 export const updateCampaignDetails = (id: number, input: CampaignDetailsInput) => {
@@ -85,7 +77,7 @@ export const updateCampaignDetails = (id: number, input: CampaignDetailsInput) =
 
   const result = db
     .prepare('UPDATE campaigns SET name = ?, expectedSessions = ?, config = ? WHERE id = ?')
-    .run(trimmedName, expectedSessions, JSON.stringify(input.config), id);
+    .run(trimmedName, expectedSessions, input.config, id);
 
   if (result.changes === 0) {
     throw new Error('Campaign not found.');
@@ -95,11 +87,11 @@ export const updateCampaignDetails = (id: number, input: CampaignDetailsInput) =
     .prepare(
       'SELECT id, name, expectedSessions, config, created_at FROM campaigns WHERE id = ?',
     )
-    .get(id) as CampaignRow | undefined;
+    .get(id) as Campaign | undefined;
 
   if (!updated) {
     throw new Error('Failed to update campaign.');
   }
 
-  return mapCampaign(updated);
+  return updated;
 };

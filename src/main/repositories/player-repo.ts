@@ -6,7 +6,7 @@ export type Player = {
   playerName: string;
   army: string;
   notes: string;
-  config: Record<string, unknown>;
+  config: string;
   created_at: string;
 };
 
@@ -14,15 +14,8 @@ export type PlayerInput = {
   playerName: string;
   army: string;
   notes: string;
-  config: Record<string, unknown>;
+  config: string;
 };
-
-type PlayerRow = Omit<Player, 'config'> & { config: string };
-
-const mapPlayerRow = (row: PlayerRow): Player => ({
-  ...row,
-  config: JSON.parse(row.config) as Record<string, unknown>,
-});
 
 export const listPlayersByCampaign = (campaignId: number) => {
   const db = getDatabase();
@@ -30,9 +23,9 @@ export const listPlayersByCampaign = (campaignId: number) => {
     .prepare(
       'SELECT id, campaign_id, playerName, army, notes, config, created_at FROM players WHERE campaign_id = ? ORDER BY id DESC',
     )
-    .all(campaignId) as PlayerRow[];
+    .all(campaignId) as Player[];
 
-  return rows.map(mapPlayerRow);
+  return rows;
 };
 
 export const createPlayer = (campaignId: number, input: PlayerInput) => {
@@ -57,20 +50,20 @@ export const createPlayer = (campaignId: number, input: PlayerInput) => {
       playerName,
       army,
       input.notes.trim(),
-      JSON.stringify(input.config),
+      input.config,
     );
 
   const row = db
     .prepare(
       'SELECT id, campaign_id, playerName, army, notes, config, created_at FROM players WHERE id = ?',
     )
-    .get(result.lastInsertRowid) as PlayerRow | undefined;
+    .get(result.lastInsertRowid) as Player | undefined;
 
   if (!row) {
     throw new Error('Failed to create player.');
   }
 
-  return mapPlayerRow(row);
+  return row;
 };
 
 export const updatePlayer = (playerId: number, input: PlayerInput) => {
@@ -90,7 +83,7 @@ export const updatePlayer = (playerId: number, input: PlayerInput) => {
     .prepare(
       'UPDATE players SET playerName = ?, army = ?, notes = ?, config = ? WHERE id = ?',
     )
-    .run(playerName, army, input.notes.trim(), JSON.stringify(input.config), playerId);
+    .run(playerName, army, input.notes.trim(), input.config, playerId);
 
   if (result.changes === 0) {
     throw new Error('Player not found.');
@@ -100,11 +93,11 @@ export const updatePlayer = (playerId: number, input: PlayerInput) => {
     .prepare(
       'SELECT id, campaign_id, playerName, army, notes, config, created_at FROM players WHERE id = ?',
     )
-    .get(playerId) as PlayerRow | undefined;
+    .get(playerId) as Player | undefined;
 
   if (!row) {
     throw new Error('Failed to update player.');
   }
 
-  return mapPlayerRow(row);
+  return row;
 };

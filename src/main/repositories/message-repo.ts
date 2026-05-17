@@ -1,21 +1,6 @@
 import { getDatabase } from '../database';
 import { Message, MessageInput } from '../../renderer/types';
 
-// export type Message = {
-//   id: number;
-//   campaign_id: number;
-//   content: string;
-//   config: Record<string, unknown>;
-//   player_ids: number[];
-//   created_at: string;
-// };
-
-// export type MessageInput = {
-//   content: string;
-//   config: Record<string, unknown>;
-//   playerIds: number[];
-// };
-
 type MessageRow = {
   id: number;
   campaign_id: number;

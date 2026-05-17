@@ -42,10 +42,7 @@ describe('campaign-repo', () => {
 
     getDatabaseMock.mockReturnValue(db);
 
-    expect(createCampaign('  Alpha  ')).toEqual({
-      ...inserted,
-      config: { prompt: 'x' },
-    });
+    expect(createCampaign('  Alpha  ')).toEqual(inserted);
   });
 
   it('lists campaigns in descending order', () => {
@@ -64,12 +61,7 @@ describe('campaign-repo', () => {
 
     getDatabaseMock.mockReturnValue(db);
 
-    expect(listCampaigns()).toEqual([
-      {
-        ...rows[0],
-        config: {},
-      },
-    ]);
+    expect(listCampaigns()).toEqual(rows);
   });
 
   it('gets campaign by id', () => {
@@ -86,10 +78,7 @@ describe('campaign-repo', () => {
 
     getDatabaseMock.mockReturnValue(db);
 
-    expect(getCampaignById(2)).toEqual({
-      ...row,
-      config: { theme: 'grim' },
-    });
+    expect(getCampaignById(2)).toEqual(row);
   });
 
   it('updates campaign details and returns updated row', () => {
@@ -116,15 +105,15 @@ describe('campaign-repo', () => {
       updateCampaignDetails(3, {
         name: '  Updated  ',
         expectedSessions: 4,
-        config: { tone: 'dark' },
+        config: '{"tone":"dark"}',
       }),
-    ).toEqual({ ...updated, config: { tone: 'dark' } });
+    ).toEqual(updated);
   });
 
   it('throws on empty campaign name', () => {
     expect(() => createCampaign('   ')).toThrow('Campaign name is required.');
     expect(() =>
-      updateCampaignDetails(1, { name: '   ', expectedSessions: 1, config: {} }),
+      updateCampaignDetails(1, { name: '   ', expectedSessions: 1, config: '{}' }),
     ).toThrow('Campaign name is required.');
   });
 });

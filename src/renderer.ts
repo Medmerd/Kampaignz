@@ -1,6 +1,6 @@
 import './index.css';
 import { createRouter } from './renderer/router';
-import { renderCampaignDetailScreen } from './renderer/screens/campaign-detail-screen';
+
 import { renderCampaignListScreen } from './renderer/screens/campaign-list-screen';
 
 const root = document.querySelector<HTMLDivElement>('#app');
@@ -14,12 +14,6 @@ const router = createRouter(async (route) => {
     await renderCampaignListScreen({ root, router });
     return;
   }
-
-  await renderCampaignDetailScreen({
-    root,
-    router,
-    campaignId: route.campaignId,
-  });
 });
 
 void router.goToCampaignList();

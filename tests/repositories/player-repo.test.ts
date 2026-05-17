@@ -19,7 +19,7 @@ const baseInput: PlayerInput = {
   playerName: 'Alice',
   army: 'Lions',
   notes: 'Ready',
-  config: { points: 1000 },
+  config: '{"points":1000}',
 };
 
 describe('player-repo', () => {
@@ -27,7 +27,7 @@ describe('player-repo', () => {
     getDatabaseMock.mockReset();
   });
 
-  it('lists players and parses config JSON', () => {
+  it('lists players and returns config string', () => {
     const rows = [
       {
         id: 7,
@@ -46,15 +46,10 @@ describe('player-repo', () => {
 
     getDatabaseMock.mockReturnValue(db);
 
-    expect(listPlayersByCampaign(1)).toEqual([
-      {
-        ...rows[0],
-        config: { points: 1000 },
-      },
-    ]);
+    expect(listPlayersByCampaign(1)).toEqual(rows);
   });
 
-  it('creates a player and returns parsed row', () => {
+  it('creates a player and returns row', () => {
     const row = {
       id: 8,
       campaign_id: 1,
@@ -77,10 +72,10 @@ describe('player-repo', () => {
 
     getDatabaseMock.mockReturnValue(db);
 
-    expect(createPlayer(1, baseInput)).toEqual({ ...row, config: { points: 1000 } });
+    expect(createPlayer(1, baseInput)).toEqual(row);
   });
 
-  it('updates a player and returns parsed row', () => {
+  it('updates a player and returns row', () => {
     const row = {
       id: 9,
       campaign_id: 1,
@@ -108,9 +103,9 @@ describe('player-repo', () => {
         playerName: 'Bob',
         army: 'Wolves',
         notes: 'Updated',
-        config: { points: 1500 },
+        config: '{"points":1500}',
       }),
-    ).toEqual({ ...row, config: { points: 1500 } });
+    ).toEqual(row);
   });
 
   it('validates player input', () => {

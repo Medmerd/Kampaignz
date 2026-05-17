@@ -2,7 +2,7 @@ export type Campaign = {
   id: number;
   name: string;
   expectedSessions: number;
-  config: Record<string, unknown>;
+  config: string;
   created_at: string;
 };
 
@@ -43,7 +43,7 @@ export type PlayerModalOptions = {
 export type CampaignDetailsInput = {
   name: string;
   expectedSessions: number;
-  config: Record<string, unknown>;
+  config: string;
 };
 
 export type Player = {
@@ -52,7 +52,7 @@ export type Player = {
   playerName: string;
   army: string;
   notes: string;
-  config: Record<string, unknown>;
+  config: string;
   created_at: string;
 };
 
