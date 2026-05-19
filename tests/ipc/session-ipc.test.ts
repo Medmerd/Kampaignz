@@ -22,6 +22,17 @@ vi.mock('../../src/main/repositories/session-repo', () => ({
   updateSession: updateSessionMock,
 }));
 
+vi.mock('../../src/main/repositories/session-match-repo', () => ({
+  listSessionMatches: vi.fn(),
+  replaceSessionMatches: vi.fn(),
+}));
+
+vi.mock('../../knexfile.js', () => ({
+  default: {
+    development: { client: 'sqlite3', connection: ':memory:' },
+  },
+}));
+
 import { registerSessionIpc } from '../../src/main/ipc/session-ipc';
 
 describe('session-ipc', () => {
