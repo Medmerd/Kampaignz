@@ -14,7 +14,7 @@ export const renderCampaignListScreen = async ({ root, router }: Options) => {
     root,
     `
       <main class="layout">
-        <h1>Kampaignz</h1>
+        <h1>Kampaignz - ${process.env.VITE_DB_CLIENT || 'none'}</h1>
         <form id="create-campaign-form" class="row">
           <input
             id="campaign-name"

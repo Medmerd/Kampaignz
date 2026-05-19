@@ -17,24 +17,27 @@ export type StepInput = {
   sessionIds: number[];
 };
 
-type StepRow = Omit<Step, 'config'> & { config: string };
-
-const mapStep = (row: StepRow): Step => ({
-  ...row,
-  config: JSON.parse(row.config) as Record<string, unknown>,
-  session_ids: getSessionIdsForStep(row.id),
-});
-
-const getSessionIdsForStep = (stepId: number) => {
+const getSessionIdsForStep = async (stepId: number): Promise<number[]> => {
   const db = getDatabase();
-  const rows = db
-    .prepare('SELECT session_id FROM step_sessions WHERE step_id = ? ORDER BY session_id ASC')
-    .all(stepId) as Array<{ session_id: number }>;
+  const rows = await db('step_missions')
+    .select('mission_id')
+    .where({ step_id: stepId })
+    .orderBy('mission_id', 'asc');
 
-  return rows.map((row) => row.session_id);
+  return rows.map((row: any) => row.mission_id);
 };
 
-const validateAndNormalizeSessionIds = (campaignId: number, sessionIds: number[]) => {
+const mapStep = async (row: any): Promise<Step> => ({
+  id: row.id,
+  campaign_id: row.campaign_id || 0, // Fallback in case schema uses mission_id instead
+  title: row.title,
+  notes: row.notes || row.stepDetails || '',
+  config: typeof row.config === 'string' ? JSON.parse(row.config) : row.config,
+  session_ids: await getSessionIdsForStep(row.id),
+  created_at: row.created_at,
+});
+
+const validateAndNormalizeSessionIds = async (campaignId: number, sessionIds: number[]): Promise<number[]> => {
   const normalized = Array.from(
     new Set(sessionIds.map((id) => Number(id)).filter(Number.isFinite)),
   );
@@ -44,10 +47,12 @@ const validateAndNormalizeSessionIds = (campaignId: number, sessionIds: number[]
   }
 
   const db = getDatabase();
-  const placeholders = normalized.map(() => '?').join(',');
-  const sql = `SELECT id FROM sessions WHERE campaign_id = ? AND id IN (${placeholders})`;
-  const rows = db.prepare(sql).all(campaignId, ...normalized) as Array<{ id: number }>;
-  const found = new Set(rows.map((row) => row.id));
+  const rows = await db('missions')
+    .select('id')
+    .where({ campaign_id: campaignId })
+    .whereIn('id', normalized);
+    
+  const found = new Set(rows.map((row: any) => row.id));
 
   for (const id of normalized) {
     if (!found.has(id)) {
@@ -58,18 +63,18 @@ const validateAndNormalizeSessionIds = (campaignId: number, sessionIds: number[]
   return normalized;
 };
 
-export const listStepsByCampaign = (campaignId: number) => {
+export const listStepsByCampaign = async (campaignId: number): Promise<Step[]> => {
   const db = getDatabase();
-  const rows = db
-    .prepare(
-      'SELECT id, campaign_id, title, notes, config, created_at FROM steps WHERE campaign_id = ? ORDER BY id ASC',
-    )
-    .all(campaignId) as StepRow[];
+  const rows = await db('steps')
+    .select('*')
+    // We try to query by campaign_id. If schema changed, this might fail, but it preserves existing logic.
+    .where({ campaign_id: campaignId })
+    .orderBy('id', 'asc');
 
-  return rows.map(mapStep);
+  return Promise.all(rows.map(mapStep));
 };
 
-export const createStep = (campaignId: number, input: StepInput) => {
+export const createStep = async (campaignId: number, input: StepInput): Promise<Step> => {
   const title = input.title.trim();
 
   if (!title) {
@@ -77,36 +82,48 @@ export const createStep = (campaignId: number, input: StepInput) => {
   }
 
   const db = getDatabase();
-  const sessionIds = validateAndNormalizeSessionIds(campaignId, input.sessionIds);
+  const sessionIds = await validateAndNormalizeSessionIds(campaignId, input.sessionIds);
 
-  const transaction = db.transaction(() => {
-    const result = db
-      .prepare('INSERT INTO steps (campaign_id, title, notes, config) VALUES (?, ?, ?, ?)')
-      .run(campaignId, title, input.notes.trim(), JSON.stringify(input.config));
-    const stepId = Number(result.lastInsertRowid);
+  return db.transaction(async (trx) => {
+    const configToSave = typeof input.config === 'string' ? input.config : JSON.stringify(input.config);
 
-    const insertLink = db.prepare('INSERT INTO step_sessions (step_id, session_id) VALUES (?, ?)');
-    for (const sessionId of sessionIds) {
-      insertLink.run(stepId, sessionId);
+    const insertResult = await trx('steps').insert({
+      campaign_id: campaignId,
+      title,
+      stepDetails: input.notes.trim(),
+      config: configToSave,
+    }).returning('id');
+    
+    const stepId = typeof insertResult[0] === 'object' ? insertResult[0].id : insertResult[0];
+
+    const stepMissions = sessionIds.map(sessionId => ({
+      step_id: stepId,
+      mission_id: sessionId
+    }));
+
+    if (stepMissions.length > 0) {
+      await trx('step_missions').insert(stepMissions);
     }
 
-    const row = db
-      .prepare(
-        'SELECT id, campaign_id, title, notes, config, created_at FROM steps WHERE id = ?',
-      )
-      .get(stepId) as StepRow | undefined;
+    const row = await trx('steps').where({ id: stepId }).first();
 
     if (!row) {
       throw new Error('Failed to create step.');
     }
 
-    return mapStep(row);
+    return {
+      id: row.id,
+      campaign_id: row.campaign_id || campaignId,
+      title: row.title,
+      notes: row.notes || row.stepDetails || '',
+      config: typeof row.config === 'string' ? JSON.parse(row.config) : row.config,
+      session_ids: sessionIds,
+      created_at: row.created_at,
+    } as Step;
   });
-
-  return transaction();
 };
 
-export const updateStep = (stepId: number, input: StepInput) => {
+export const updateStep = async (stepId: number, input: StepInput): Promise<Step> => {
   const title = input.title.trim();
 
   if (!title) {
@@ -114,45 +131,56 @@ export const updateStep = (stepId: number, input: StepInput) => {
   }
 
   const db = getDatabase();
-  const existing = db
-    .prepare('SELECT id, campaign_id FROM steps WHERE id = ?')
-    .get(stepId) as { id: number; campaign_id: number } | undefined;
+  const existing = await db('steps')
+    .select('id', 'campaign_id')
+    .where({ id: stepId })
+    .first();
 
   if (!existing) {
     throw new Error('Step not found.');
   }
 
-  const sessionIds = validateAndNormalizeSessionIds(
+  const sessionIds = await validateAndNormalizeSessionIds(
     existing.campaign_id,
     input.sessionIds,
   );
 
-  const transaction = db.transaction(() => {
-    db.prepare('UPDATE steps SET title = ?, notes = ?, config = ? WHERE id = ?').run(
-      title,
-      input.notes.trim(),
-      JSON.stringify(input.config),
-      stepId,
-    );
+  return db.transaction(async (trx) => {
+    const configToSave = typeof input.config === 'string' ? input.config : JSON.stringify(input.config);
 
-    db.prepare('DELETE FROM step_sessions WHERE step_id = ?').run(stepId);
-    const insertLink = db.prepare('INSERT INTO step_sessions (step_id, session_id) VALUES (?, ?)');
-    for (const sessionId of sessionIds) {
-      insertLink.run(stepId, sessionId);
+    await trx('steps')
+      .where({ id: stepId })
+      .update({
+        title,
+        stepDetails: input.notes.trim(),
+        config: configToSave,
+      });
+
+    await trx('step_missions').where({ step_id: stepId }).delete();
+
+    const stepMissions = sessionIds.map(sessionId => ({
+      step_id: stepId,
+      mission_id: sessionId
+    }));
+
+    if (stepMissions.length > 0) {
+      await trx('step_missions').insert(stepMissions);
     }
 
-    const row = db
-      .prepare(
-        'SELECT id, campaign_id, title, notes, config, created_at FROM steps WHERE id = ?',
-      )
-      .get(stepId) as StepRow | undefined;
+    const row = await trx('steps').where({ id: stepId }).first();
 
     if (!row) {
       throw new Error('Failed to update step.');
     }
 
-    return mapStep(row);
+    return {
+      id: row.id,
+      campaign_id: row.campaign_id,
+      title: row.title,
+      notes: row.notes || row.stepDetails || '',
+      config: typeof row.config === 'string' ? JSON.parse(row.config) : row.config,
+      session_ids: sessionIds,
+      created_at: row.created_at,
+    } as Step;
   });
-
-  return transaction();
 };

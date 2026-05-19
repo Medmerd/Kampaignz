@@ -9,34 +9,35 @@ type MessageRow = {
   created_at: string;
 };
 
-const getPlayerIdsForMessage = (messageId: number) => {
+const getPlayerIdsForMessage = async (messageId: number): Promise<number[]> => {
   const db = getDatabase();
-  const rows = db
-    .prepare('SELECT player_id FROM message_players WHERE message_id = ? ORDER BY player_id ASC')
-    .all(messageId) as Array<{ player_id: number }>;
+  const rows = await db('message_players')
+    .select('player_id')
+    .where({ message_id: messageId })
+    .orderBy('player_id', 'asc') as Array<{ player_id: number }>;
 
   return rows.map((row) => row.player_id);
 };
 
-const mapMessage = (row: MessageRow): Message => ({
+const mapMessage = async (row: MessageRow): Promise<Message> => ({
   ...row,
-  config: JSON.parse(row.config), // as Record<string, unknown>,
-  player_ids: getPlayerIdsForMessage(row.id),
+  player_ids: await getPlayerIdsForMessage(row.id),
 });
 
-//const hasConfigContent = (config: Record<string, unknown>) =>
-const hasConfigContent = (config: string) => Object.keys(config).length > 0;
+const hasConfigContent = (config: string) => config && config !== '{}' && config.length > 0;
 
-const validateAndNormalizePlayerIds = (campaignId: number, playerIds: number[]) => {
+const validateAndNormalizePlayerIds = async (campaignId: number, playerIds: number[]): Promise<number[]> => {
   const normalized = playerIds && playerIds.length > 0 ? Array.from(new Set(playerIds.map((id) => Number(id)).filter(Number.isFinite))) : [];
   if (normalized.length === 0) {
     return normalized;
   }
 
   const db = getDatabase();
-  const placeholders = normalized.map(() => '?').join(',');
-  const sql = `SELECT id FROM players WHERE campaign_id = ? AND id IN (${placeholders})`;
-  const rows = db.prepare(sql).all(campaignId, ...normalized) as Array<{ id: number }>;
+  const rows = await db('players')
+    .select('id')
+    .where({ campaign_id: campaignId })
+    .whereIn('id', normalized) as Array<{ id: number }>;
+    
   const found = new Set(rows.map((row) => row.id));
 
   for (const id of normalized) {
@@ -48,16 +49,17 @@ const validateAndNormalizePlayerIds = (campaignId: number, playerIds: number[]) 
   return normalized;
 };
 
-export const listMessagesByCampaign = (campaignId: number) => {
+export const listMessagesByCampaign = async (campaignId: number): Promise<Message[]> => {
   const db = getDatabase();
-  const rows = db
-    .prepare('SELECT id, campaign_id, content, config, created_at FROM messages WHERE campaign_id = ? ORDER BY id DESC')
-    .all(campaignId) as MessageRow[];
+  const rows = await db('messages')
+    .select('id', 'campaign_id', 'content', 'config', 'created_at')
+    .where({ campaign_id: campaignId })
+    .orderBy('id', 'desc') as MessageRow[];
 
-  return rows.map(mapMessage);
+  return Promise.all(rows.map(mapMessage));
 };
 
-export const createMessage = (campaignId: number, input: MessageInput) => {
+export const createMessage = async (campaignId: number, input: MessageInput): Promise<Message> => {
   const content = input.content.trim();
   const config = input.config;
 
@@ -65,35 +67,44 @@ export const createMessage = (campaignId: number, input: MessageInput) => {
     throw new Error('Message content or config is required.');
   }
 
-  const playerIds = validateAndNormalizePlayerIds(campaignId, input.playerIds);
+  const playerIds = await validateAndNormalizePlayerIds(campaignId, input.playerIds);
   const db = getDatabase();
 
-  const transaction = db.transaction(() => {
-    const result = db
-      .prepare('INSERT INTO messages (campaign_id, content, config) VALUES (?, ?, ?)')
-      .run(campaignId, content, JSON.stringify(config));
-    const messageId = Number(result.lastInsertRowid);
+  return db.transaction(async (trx) => {
+    const insertResult = await trx('messages').insert({
+      campaign_id: campaignId,
+      content,
+      config,
+    }).returning('id');
 
-    const insertLink = db.prepare('INSERT INTO message_players (message_id, player_id) VALUES (?, ?)');
-    for (const playerId of playerIds) {
-      insertLink.run(messageId, playerId);
+    const messageId = typeof insertResult[0] === 'object' ? insertResult[0].id : insertResult[0];
+
+    const messagePlayers = playerIds.map(playerId => ({
+        message_id: messageId,
+        player_id: playerId
+    }));
+
+    if (messagePlayers.length > 0) {
+        await trx('message_players').insert(messagePlayers);
     }
 
-    const row = db
-      .prepare('SELECT id, campaign_id, content, config, created_at FROM messages WHERE id = ?')
-      .get(messageId) as MessageRow | undefined;
+    const row = await trx('messages')
+      .select('id', 'campaign_id', 'content', 'config', 'created_at')
+      .where({ id: messageId })
+      .first() as MessageRow | undefined;
 
     if (!row) {
       throw new Error('Failed to create message.');
     }
 
-    return mapMessage(row);
+    return {
+        ...row,
+        player_ids: playerIds
+    };
   });
-
-  return transaction();
 };
 
-export const updateMessage = (messageId: number, input: MessageInput) => {
+export const updateMessage = async (messageId: number, input: MessageInput): Promise<Message> => {
   const content = input.content.trim();
   const config = input.config;
 
@@ -102,37 +113,45 @@ export const updateMessage = (messageId: number, input: MessageInput) => {
   }
 
   const db = getDatabase();
-  const existing = db
-    .prepare('SELECT id, campaign_id, content, config, created_at FROM messages WHERE id = ?')
-    .get(messageId) as MessageRow | undefined;
+  const existing = await db('messages')
+    .select('id', 'campaign_id', 'content', 'config', 'created_at')
+    .where({ id: messageId })
+    .first() as MessageRow | undefined;
 
   if (!existing) {
     throw new Error('Message not found.');
   }
 
-  const playerIds = validateAndNormalizePlayerIds(existing.campaign_id, input.playerIds);
+  const playerIds = await validateAndNormalizePlayerIds(existing.campaign_id, input.playerIds);
 
-  const transaction = db.transaction(() => {
-    db
-      .prepare('UPDATE messages SET content = ?, config = ? WHERE id = ?')
-      .run(content, JSON.stringify(config), messageId);
-    db.prepare('DELETE FROM message_players WHERE message_id = ?').run(messageId);
+  return db.transaction(async (trx) => {
+    await trx('messages')
+      .where({ id: messageId })
+      .update({ content, config });
+      
+    await trx('message_players').where({ message_id: messageId }).delete();
 
-    const insertLink = db.prepare('INSERT INTO message_players (message_id, player_id) VALUES (?, ?)');
-    for (const playerId of playerIds) {
-      insertLink.run(messageId, playerId);
+    const messagePlayers = playerIds.map(playerId => ({
+        message_id: messageId,
+        player_id: playerId
+    }));
+
+    if (messagePlayers.length > 0) {
+        await trx('message_players').insert(messagePlayers);
     }
 
-    const row = db
-      .prepare('SELECT id, campaign_id, content, config, created_at FROM messages WHERE id = ?')
-      .get(messageId) as MessageRow | undefined;
+    const row = await trx('messages')
+      .select('id', 'campaign_id', 'content', 'config', 'created_at')
+      .where({ id: messageId })
+      .first() as MessageRow | undefined;
 
     if (!row) {
       throw new Error('Failed to update message.');
     }
 
-    return mapMessage(row);
+    return {
+        ...row,
+        player_ids: playerIds
+    };
   });
-
-  return transaction();
 };

@@ -17,88 +17,104 @@ export type SessionInput = {
   map: string;
 };
 
-type SessionRow = Omit<Session, 'config'> & { config: string };
-
-const mapSession = (row: SessionRow): Session => ({
-  ...row,
-  config: JSON.parse(row.config) as Record<string, unknown>,
-});
-
-export const listSessionsByCampaign = (campaignId: number) => {
+export const listSessionsByCampaign = async (campaignId: number): Promise<Session[]> => {
   const db = getDatabase();
-  const rows = db
-    .prepare(
-      'SELECT id, campaign_id, title, config, sessionDetails, map, created_at FROM sessions WHERE campaign_id = ? ORDER BY id DESC',
-    )
-    .all(campaignId) as SessionRow[];
+  const rows = await db('missions')
+    .select('id', 'campaign_id', 'title', 'config', 'missionDetails', 'map', 'created_at')
+    .where({ campaign_id: campaignId })
+    .orderBy('id', 'desc');
 
-  return rows.map(mapSession);
+  return rows.map((row: any) => ({
+    id: row.id,
+    campaign_id: row.campaign_id,
+    title: row.title,
+    config: typeof row.config === 'string' ? JSON.parse(row.config) : row.config,
+    sessionDetails: row.missionDetails,
+    map: row.map,
+    created_at: row.created_at,
+  })) as Session[];
 };
 
-export const createSession = (campaignId: number, input: SessionInput) => {
+export const createSession = async (campaignId: number, input: SessionInput): Promise<Session> => {
   const title = input.title.trim();
   if (!title) {
     throw new Error('Session title is required.');
   }
 
   const db = getDatabase();
-  const result = db
-    .prepare(
-      'INSERT INTO sessions (campaign_id, title, config, sessionDetails, map) VALUES (?, ?, ?, ?, ?)',
-    )
-    .run(
-      campaignId,
+  return db.transaction(async (trx) => {
+    // Stringify for SQLite fallback, or just pass object. Knex sqlite3 driver usually stringifies json automatically.
+    const configToSave = typeof input.config === 'string' ? input.config : JSON.stringify(input.config);
+
+    const insertResult = await trx('missions').insert({
+      campaign_id: campaignId,
       title,
-      JSON.stringify(input.config),
-      input.sessionDetails.trim(),
-      input.map.trim(),
-    );
+      config: configToSave,
+      missionDetails: input.sessionDetails.trim(),
+      map: input.map.trim(),
+    }).returning('id');
 
-  const row = db
-    .prepare(
-      'SELECT id, campaign_id, title, config, sessionDetails, map, created_at FROM sessions WHERE id = ?',
-    )
-    .get(result.lastInsertRowid) as SessionRow | undefined;
+    const insertedId = typeof insertResult[0] === 'object' ? insertResult[0].id : insertResult[0];
 
-  if (!row) {
-    throw new Error('Failed to create session.');
-  }
+    const row = await trx('missions')
+      .select('id', 'campaign_id', 'title', 'config', 'missionDetails', 'map', 'created_at')
+      .where({ id: insertedId })
+      .first();
 
-  return mapSession(row);
+    if (!row) {
+      throw new Error('Failed to create session.');
+    }
+
+    return {
+      id: row.id,
+      campaign_id: row.campaign_id,
+      title: row.title,
+      config: typeof row.config === 'string' ? JSON.parse(row.config) : row.config,
+      sessionDetails: row.missionDetails,
+      map: row.map,
+      created_at: row.created_at,
+    } as Session;
+  });
 };
 
-export const updateSession = (sessionId: number, input: SessionInput) => {
+export const updateSession = async (sessionId: number, input: SessionInput): Promise<Session> => {
   const title = input.title.trim();
   if (!title) {
     throw new Error('Session title is required.');
   }
 
   const db = getDatabase();
-  const result = db
-    .prepare(
-      'UPDATE sessions SET title = ?, config = ?, sessionDetails = ?, map = ? WHERE id = ?',
-    )
-    .run(
+  const configToSave = typeof input.config === 'string' ? input.config : JSON.stringify(input.config);
+  
+  const changes = await db('missions')
+    .where({ id: sessionId })
+    .update({
       title,
-      JSON.stringify(input.config),
-      input.sessionDetails.trim(),
-      input.map.trim(),
-      sessionId,
-    );
+      config: configToSave,
+      missionDetails: input.sessionDetails.trim(),
+      map: input.map.trim(),
+    });
 
-  if (result.changes === 0) {
+  if (changes === 0) {
     throw new Error('Session not found.');
   }
 
-  const row = db
-    .prepare(
-      'SELECT id, campaign_id, title, config, sessionDetails, map, created_at FROM sessions WHERE id = ?',
-    )
-    .get(sessionId) as SessionRow | undefined;
+  const row = await db('missions')
+    .select('id', 'campaign_id', 'title', 'config', 'missionDetails', 'map', 'created_at')
+    .where({ id: sessionId })
+    .first();
 
   if (!row) {
     throw new Error('Failed to update session.');
   }
 
-  return mapSession(row);
+  return {
+    id: row.id,
+    campaign_id: row.campaign_id,
+    title: row.title,
+    config: typeof row.config === 'string' ? JSON.parse(row.config) : row.config,
+    sessionDetails: row.missionDetails,
+    map: row.map,
+    created_at: row.created_at,
+  } as Session;
 };

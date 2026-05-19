@@ -1,11 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const { getDatabaseMock } = vi.hoisted(() => ({
-  getDatabaseMock: vi.fn(),
-}));
+import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
+import { setupTestDatabase, getTestDatabase, closeTestDatabase } from '../db-setup';
 
 vi.mock('../../src/main/database', () => ({
-  getDatabase: getDatabaseMock,
+  getDatabase: () => getTestDatabase(),
 }));
 
 import {
@@ -16,104 +13,62 @@ import {
 } from '../../src/main/repositories/campaign-repo';
 
 describe('campaign-repo', () => {
-  beforeEach(() => {
-    getDatabaseMock.mockReset();
+  beforeEach(async () => {
+    await setupTestDatabase();
   });
 
-  it('creates a campaign and returns the inserted row', () => {
-    const inserted = {
-      id: 11,
-      name: 'Alpha',
-      expectedSessions: 1,
-      config: '{"prompt":"x"}',
-      created_at: '2026-05-03T00:00:00Z',
-    };
-
-    const db = {
-      prepare: vi.fn((sql: string) => {
-        if (sql.includes('INSERT INTO campaigns')) {
-          return { run: vi.fn(() => ({ lastInsertRowid: 11 })) };
-        }
-
-        return { get: vi.fn(() => inserted) };
-      }),
-      transaction: vi.fn((fn: (name: string) => unknown) => fn),
-    };
-
-    getDatabaseMock.mockReturnValue(db);
-
-    expect(createCampaign('  Alpha  ')).toEqual(inserted);
+  afterEach(async () => {
+    await closeTestDatabase();
   });
 
-  it('lists campaigns in descending order', () => {
-    const rows = [
-      {
-        id: 1,
-        name: 'A',
-        expectedSessions: 1,
-        config: '{}',
-        created_at: '2026-05-03T00:00:00Z',
-      },
-    ];
-    const db = {
-      prepare: vi.fn(() => ({ all: vi.fn(() => rows) })),
-    };
-
-    getDatabaseMock.mockReturnValue(db);
-
-    expect(listCampaigns()).toEqual(rows);
+  it('creates a campaign and returns the inserted row', async () => {
+    const campaign = await createCampaign('  Alpha  ');
+    
+    expect(campaign.name).toBe('Alpha');
+    expect(campaign.expectedSessions).toBe(1);
+    expect(campaign.config).toBe('{}');
+    expect(campaign.id).toBeDefined();
+    expect(campaign.created_at).toBeDefined();
   });
 
-  it('gets campaign by id', () => {
-    const row = {
-      id: 2,
-      name: 'B',
-      expectedSessions: 2,
-      config: '{"theme":"grim"}',
-      created_at: '2026-05-03T00:00:00Z',
-    };
-    const db = {
-      prepare: vi.fn(() => ({ get: vi.fn(() => row) })),
-    };
+  it('lists campaigns in descending order', async () => {
+    const c1 = await createCampaign('First');
+    const c2 = await createCampaign('Second');
 
-    getDatabaseMock.mockReturnValue(db);
-
-    expect(getCampaignById(2)).toEqual(row);
+    const list = await listCampaigns();
+    expect(list).toHaveLength(2);
+    expect(list[0].id).toBe(c2.id);
+    expect(list[1].id).toBe(c1.id);
   });
 
-  it('updates campaign details and returns updated row', () => {
-    const updated = {
-      id: 3,
-      name: 'Updated',
+  it('gets campaign by id', async () => {
+    const campaign = await createCampaign('B');
+    const fetched = await getCampaignById(campaign.id);
+    
+    expect(fetched).toBeDefined();
+    expect(fetched!.id).toBe(campaign.id);
+  });
+
+  it('updates campaign details and returns updated row', async () => {
+    const campaign = await createCampaign('Original');
+    
+    const updated = await updateCampaignDetails(campaign.id, {
+      name: '  Updated  ',
       expectedSessions: 4,
       config: '{"tone":"dark"}',
-      created_at: '2026-05-03T00:00:00Z',
-    };
-    const db = {
-      prepare: vi.fn((sql: string) => {
-        if (sql.includes('UPDATE campaigns')) {
-          return { run: vi.fn(() => ({ changes: 1 })) };
-        }
+    });
 
-        return { get: vi.fn(() => updated) };
-      }),
-    };
-
-    getDatabaseMock.mockReturnValue(db);
-
-    expect(
-      updateCampaignDetails(3, {
-        name: '  Updated  ',
-        expectedSessions: 4,
-        config: '{"tone":"dark"}',
-      }),
-    ).toEqual(updated);
+    expect(updated.name).toBe('Updated');
+    expect(updated.expectedSessions).toBe(4);
+    expect(updated.config).toBe('{"tone":"dark"}');
   });
 
-  it('throws on empty campaign name', () => {
-    expect(() => createCampaign('   ')).toThrow('Campaign name is required.');
-    expect(() =>
-      updateCampaignDetails(1, { name: '   ', expectedSessions: 1, config: '{}' }),
-    ).toThrow('Campaign name is required.');
+  it('throws on empty campaign name', async () => {
+    await expect(createCampaign('   ')).rejects.toThrow('Campaign name is required.');
+    
+    const campaign = await createCampaign('Valid');
+    await expect(
+      updateCampaignDetails(campaign.id, { name: '   ', expectedSessions: 1, config: '{}' }),
+    ).rejects.toThrow('Campaign name is required.');
   });
 });

@@ -45,6 +45,7 @@ This project uses `better-sqlite3`, which is a native Node.js module.
   npm run rebuild
   ```
 - This script uses `electron-rebuild` to ensure the native module is compiled for the correct Electron version.
+- When using node or npm directly if any commands are not available, run `source ~/.nvm/nvm.sh` to ensure these are loaded and available. 
 
 ## Core Directories
 - `src/main/ipc`: IPC handlers for backend communication.

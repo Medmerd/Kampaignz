@@ -10,6 +10,8 @@ interface CampaignListProps {
   onSelectCampaign: (id: number) => void;
 }
 
+const test: string = import.meta.env.VITE_DB_CLIENT || 'none';
+
 export default function CampaignList({ onSelectCampaign }: CampaignListProps) {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,14 +19,14 @@ export default function CampaignList({ onSelectCampaign }: CampaignListProps) {
 
   const fetchCampaigns = async () => {
     setLoading(true);
-    try {
-      const data = await api.listCampaigns();
-      setCampaigns(data);
-    } catch (error) {
-      message.error('Failed to load campaigns');
-    } finally {
-      setLoading(false);
-    }
+    //try {
+    const data = await api.listCampaigns();
+    setCampaigns(data);
+    // } catch (error) {
+    //  message.error('Failed to load campaigns', error);
+    //} finally {
+    setLoading(false);
+    // }
   };
 
   useEffect(() => {
@@ -44,8 +46,8 @@ export default function CampaignList({ onSelectCampaign }: CampaignListProps) {
 
   return (
     <Card className="layout" style={{ maxWidth: 800, margin: '20px auto' }}>
-      <Title level={2}>Kampaignz</Title>
-      
+      <Title level={2}>Kampaignz - {test}</Title>
+
       <Form
         form={form}
         onFinish={onFinish}
@@ -70,10 +72,10 @@ export default function CampaignList({ onSelectCampaign }: CampaignListProps) {
         campaigns.map((campaign) => {
           return (
             <li key={`row${campaign.id}`}>
-              <button className={`link-button`} 
-                  data-message-id={campaign.id}
-                  onClick={() => onSelectCampaign(campaign.id)}>
-                     {campaign.name}
+              <button className={`link-button`}
+                data-message-id={campaign.id}
+                onClick={() => onSelectCampaign(campaign.id)}>
+                {campaign.name}
               </button>
               <div className="date">{formatDate(campaign.created_at)}</div>
             </li>

@@ -8,7 +8,7 @@ export type Campaign = {
   created_at: string;
 };
 
-export const createCampaign = (name: string) => {
+export const createCampaign = async (name: string): Promise<Campaign> => {
   const trimmedName = name.trim();
 
   if (!trimmedName) {
@@ -17,16 +17,14 @@ export const createCampaign = (name: string) => {
 
   const db = getDatabase();
 
-  const transaction = db.transaction((campaignName: string) => {
-    const result = db
-      .prepare('INSERT INTO campaigns (name) VALUES (?)')
-      .run(campaignName);
+  return db.transaction(async (trx) => {
+    const insertResult = await trx('campaigns').insert({ name: trimmedName }).returning('id');
+    const insertedId = typeof insertResult[0] === 'object' ? insertResult[0].id : insertResult[0];
 
-    const created = db
-      .prepare(
-        'SELECT id, name, expectedSessions, config, created_at FROM campaigns WHERE id = ?',
-      )
-      .get(result.lastInsertRowid) as Campaign | undefined;
+    const created = await trx('campaigns')
+      .select('id', 'name', 'expectedSessions', 'config', 'created_at')
+      .where({ id: insertedId })
+      .first() as Promise<Campaign | undefined>;
 
     if (!created) {
       throw new Error('Failed to create campaign.');
@@ -34,30 +32,23 @@ export const createCampaign = (name: string) => {
 
     return created;
   });
-
-  return transaction(trimmedName);
 };
 
-export const listCampaigns = () => {
+export const listCampaigns = async (): Promise<Campaign[]> => {
   const db = getDatabase();
 
-  return db
-    .prepare(
-      'SELECT id, name, expectedSessions, config, created_at FROM campaigns ORDER BY id DESC',
-    )
-    .all() as Campaign[];
+  return db('campaigns')
+    .select('id', 'name', 'expectedSessions', 'config', 'created_at')
+    .orderBy('id', 'desc') as Promise<Campaign[]>;
 };
 
-export const getCampaignById = (id: number) => {
+export const getCampaignById = async (id: number): Promise<Campaign | undefined> => {
   const db = getDatabase();
 
-  const row = db
-    .prepare(
-      'SELECT id, name, expectedSessions, config, created_at FROM campaigns WHERE id = ?',
-    )
-    .get(id) as Campaign | undefined;
-
-  return row;
+  return db('campaigns')
+    .select('id', 'name', 'expectedSessions', 'config', 'created_at')
+    .where({ id })
+    .first() as Promise<Campaign | undefined>;
 };
 
 export type CampaignDetailsInput = {
@@ -66,7 +57,7 @@ export type CampaignDetailsInput = {
   config: string;
 };
 
-export const updateCampaignDetails = (id: number, input: CampaignDetailsInput) => {
+export const updateCampaignDetails = async (id: number, input: CampaignDetailsInput): Promise<Campaign> => {
   const trimmedName = input.name.trim();
   const expectedSessions = Math.max(1, Math.floor(input.expectedSessions));
   if (!trimmedName) {
@@ -75,19 +66,22 @@ export const updateCampaignDetails = (id: number, input: CampaignDetailsInput) =
 
   const db = getDatabase();
 
-  const result = db
-    .prepare('UPDATE campaigns SET name = ?, expectedSessions = ?, config = ? WHERE id = ?')
-    .run(trimmedName, expectedSessions, input.config, id);
+  const changes = await db('campaigns')
+    .where({ id })
+    .update({
+      name: trimmedName,
+      expectedSessions,
+      config: input.config,
+    });
 
-  if (result.changes === 0) {
+  if (changes === 0) {
     throw new Error('Campaign not found.');
   }
 
-  const updated = db
-    .prepare(
-      'SELECT id, name, expectedSessions, config, created_at FROM campaigns WHERE id = ?',
-    )
-    .get(id) as Campaign | undefined;
+  const updated = await db('campaigns')
+    .select('id', 'name', 'expectedSessions', 'config', 'created_at')
+    .where({ id })
+    .first() as Promise<Campaign | undefined>;
 
   if (!updated) {
     throw new Error('Failed to update campaign.');

@@ -5,7 +5,10 @@ const schema = 'kampaignz';
  * @returns { Promise<void> }
  */
 exports.up = async function (knex) {
-    return knex.schema.withSchema(schema)
+    const isSqlite = knex.client.config.client === 'sqlite3' || knex.client.config.client === 'better-sqlite3';
+    const schemaBuilder = isSqlite ? knex.schema : knex.schema.withSchema(schema);
+
+    return schemaBuilder
         .createTable('campaigns', (table) => {
             table.increments('id').primary();
             table.string('name').notNullable();
@@ -50,13 +53,13 @@ exports.up = async function (knex) {
         })
         .createTable('steps', (table) => {
             table.increments('id').primary();
-            table.integer('mission_id').notNullable().index('idx_steps_mission_id');
+            table.integer('campaign_id').notNullable().index('idx_steps_campaign_id');
             table.string('title').notNullable();
             table.json('config').notNullable().defaultTo('{}');
             table.string('stepDetails').notNullable().defaultTo('');
             table.string('map').notNullable().defaultTo('');
             table.timestamp('created_at').notNullable().defaultTo(knex.fn.now());
-            table.foreign('mission_id').references('id').inTable('missions').onDelete('CASCADE');
+            table.foreign('campaign_id').references('id').inTable('campaigns').onDelete('CASCADE');
         })
         .createTable('step_players', (table) => {
             table.integer('step_id').notNullable();
@@ -101,7 +104,10 @@ exports.up = async function (knex) {
             table.foreign('playerAId').references('id').inTable('players').onDelete('CASCADE');
             table.foreign('playerBId').references('id').inTable('players').onDelete('CASCADE');
         }).then(() => console.log("Table created successfully!"))
-        .catch(err => console.error("Error creating table:", err));
+        .catch(err => {
+            console.error("Error creating table:", err);
+            throw err;
+        });
 };
 
 /**
@@ -109,18 +115,21 @@ exports.up = async function (knex) {
  * @returns { Promise<void> }
  */
 exports.down = async function (knex) {
-    await knex.schema.withSchema(schema).dropTableIfExists('step_players')
-    await knex.schema.withSchema(schema).dropTableIfExists('step_messages');
-    await knex.schema.withSchema(schema).dropTableIfExists('step_missions');
-    await knex.schema.withSchema(schema).dropTableIfExists('message_players');
-    await knex.schema.withSchema(schema).dropTableIfExists('messages');
-    await knex.schema.withSchema(schema).dropTableIfExists('missionMatch');
-    await knex.schema.withSchema(schema).dropTableIfExists('players');
-    await knex.schema.withSchema(schema).dropTableIfExists('missionMatchTeam');
-    await knex.schema.withSchema(schema).dropTableIfExists('missionMatchTypes');
-    await knex.schema.withSchema(schema).dropTableIfExists('steps')
-    await knex.schema.withSchema(schema).dropTableIfExists('missions')
-    await knex.schema.withSchema(schema).dropTableIfExists('campaigns');
+    const isSqlite = knex.client.config.client === 'sqlite3' || knex.client.config.client === 'better-sqlite3';
+    const schemaBuilder = isSqlite ? knex.schema : knex.schema.withSchema(schema);
+
+    await schemaBuilder.dropTableIfExists('step_players')
+    await schemaBuilder.dropTableIfExists('step_messages');
+    await schemaBuilder.dropTableIfExists('step_missions');
+    await schemaBuilder.dropTableIfExists('message_players');
+    await schemaBuilder.dropTableIfExists('messages');
+    await schemaBuilder.dropTableIfExists('missionMatch');
+    await schemaBuilder.dropTableIfExists('players');
+    await schemaBuilder.dropTableIfExists('missionMatchTeam');
+    await schemaBuilder.dropTableIfExists('missionMatchTypes');
+    await schemaBuilder.dropTableIfExists('steps')
+    await schemaBuilder.dropTableIfExists('missions')
+    await schemaBuilder.dropTableIfExists('campaigns');
 
     return knex.schema;
 };

@@ -35,41 +35,37 @@ const validateMatches = (matches: SessionMatch[]) => {
   }
 };
 
-export const listSessionMatches = (sessionId: number) => {
+export const listSessionMatches = async (sessionId: number): Promise<SessionMatch[]> => {
   const db = getDatabase();
-  const rows = db
-    .prepare(
-      'SELECT matchId, teamAId, teamBId, matchType FROM sessionMatchTeam WHERE sessionId = ? ORDER BY matchId ASC',
-    )
-    .all(sessionId) as Array<{
-    matchId: number;
-    teamAId: number;
-    teamBId: number;
-    matchType: 1 | 2 | 4;
-  }>;
+  const rows = await db('missionMatchTeam')
+    .select('matchId', 'teamAId', 'teamBId', 'matchType')
+    .where({ missionId: sessionId })
+    .orderBy('matchId', 'asc');
 
-  return rows.map((row) => {
-    const pairs = db
-      .prepare(
-        'SELECT playerAId, playerBId FROM sessionMatch WHERE teamAId = ? AND teamBId = ?',
-      )
-      .all(row.teamAId, row.teamBId) as Array<{ playerAId: number; playerBId: number }>;
+  const matches = [];
+  for (const row of rows) {
+    const pairs = await db('missionMatch')
+      .select('playerAId', 'playerBId')
+      .where({ teamAId: row.teamAId, teamBId: row.teamBId });
 
-    return {
-      matchType: row.matchType,
-      teamAPlayerIds: pairs.map((pair) => pair.playerAId),
-      teamBPlayerIds: pairs.map((pair) => pair.playerBId),
-    } as SessionMatch;
-  });
+    matches.push({
+      matchType: row.matchType as 1 | 2 | 4,
+      teamAPlayerIds: pairs.map((pair: any) => pair.playerAId),
+      teamBPlayerIds: pairs.map((pair: any) => pair.playerBId),
+    });
+  }
+
+  return matches;
 };
 
-export const replaceSessionMatches = (sessionId: number, matches: SessionMatch[]) => {
+export const replaceSessionMatches = async (sessionId: number, matches: SessionMatch[]): Promise<void> => {
   validateMatches(matches);
   const db = getDatabase();
 
-  const session = db
-    .prepare('SELECT id, campaign_id FROM sessions WHERE id = ?')
-    .get(sessionId) as { id: number; campaign_id: number } | undefined;
+  const session = await db('missions')
+    .select('id', 'campaign_id')
+    .where({ id: sessionId })
+    .first();
 
   if (!session) {
     throw new Error('Session not found.');
@@ -82,10 +78,12 @@ export const replaceSessionMatches = (sessionId: number, matches: SessionMatch[]
 
   if (playerIds.length > 0) {
     const unique = Array.from(new Set(playerIds));
-    const placeholders = unique.map(() => '?').join(',');
-    const sql = `SELECT id FROM players WHERE campaign_id = ? AND id IN (${placeholders})`;
-    const rows = db.prepare(sql).all(session.campaign_id, ...unique) as Array<{ id: number }>;
-    const found = new Set(rows.map((row) => row.id));
+    const rows = await db('players')
+      .select('id')
+      .where({ campaign_id: session.campaign_id })
+      .whereIn('id', unique);
+
+    const found = new Set(rows.map((row: any) => row.id));
 
     for (const id of unique) {
       if (!found.has(id)) {
@@ -94,39 +92,48 @@ export const replaceSessionMatches = (sessionId: number, matches: SessionMatch[]
     }
   }
 
-  const transaction = db.transaction(() => {
-    const current = db
-      .prepare('SELECT teamAId, teamBId FROM sessionMatchTeam WHERE sessionId = ?')
-      .all(sessionId) as Array<{ teamAId: number; teamBId: number }>;
+  return db.transaction(async (trx) => {
+    const current = await trx('missionMatchTeam')
+      .select('teamAId', 'teamBId')
+      .where({ missionId: sessionId });
 
     for (const team of current) {
-      db.prepare('DELETE FROM sessionMatch WHERE teamAId = ? AND teamBId = ?').run(
-        team.teamAId,
-        team.teamBId,
-      );
+      await trx('missionMatch')
+        .where({ teamAId: team.teamAId, teamBId: team.teamBId })
+        .delete();
     }
 
-    db.prepare('DELETE FROM sessionMatchTeam WHERE sessionId = ?').run(sessionId);
+    await trx('missionMatchTeam').where({ missionId: sessionId }).delete();
 
     let nextTeamId = Date.now();
+    let nextMatchId = Date.now();
 
     for (const match of matches) {
       const teamAId = nextTeamId++;
       const teamBId = nextTeamId++;
+      const matchId = nextMatchId++;
 
-      db.prepare(
-        'INSERT INTO sessionMatchTeam (sessionId, teamAId, teamBId, matchType) VALUES (?, ?, ?, ?)',
-      ).run(sessionId, teamAId, teamBId, match.matchType);
+      await trx('missionMatchTeam').insert({
+        matchId,
+        missionId: sessionId,
+        teamAId,
+        teamBId,
+        matchType: match.matchType,
+      });
 
-      const insertPair = db.prepare(
-        'INSERT INTO sessionMatch (teamAId, teamBId, playerAId, playerBId) VALUES (?, ?, ?, ?)',
-      );
-
+      const pairs = [];
       for (let i = 0; i < match.matchType; i += 1) {
-        insertPair.run(teamAId, teamBId, match.teamAPlayerIds[i], match.teamBPlayerIds[i]);
+        pairs.push({
+          teamAId,
+          teamBId,
+          playerAId: match.teamAPlayerIds[i],
+          playerBId: match.teamBPlayerIds[i]
+        });
+      }
+
+      if (pairs.length > 0) {
+        await trx('missionMatch').insert(pairs);
       }
     }
   });
-
-  transaction();
 };
