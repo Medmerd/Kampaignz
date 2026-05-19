@@ -14,7 +14,7 @@ export const migration001Init: Migration = {
 
       CREATE INDEX IF NOT EXISTS idx_campaigns_created_at
         ON campaigns(created_at);
-
+x
       CREATE TABLE IF NOT EXISTS players (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         campaign_id INTEGER NOT NULL,

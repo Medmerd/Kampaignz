@@ -1,11 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const { getDatabaseMock } = vi.hoisted(() => ({
-  getDatabaseMock: vi.fn(),
-}));
+import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
+import { setupTestDatabase, getTestDatabase, closeTestDatabase } from '../db-setup';
 
 vi.mock('../../src/main/database', () => ({
-  getDatabase: getDatabaseMock,
+  getDatabase: () => getTestDatabase(),
 }));
 
 import {
@@ -14,110 +11,66 @@ import {
   updatePlayer,
   type PlayerInput,
 } from '../../src/main/repositories/player-repo';
+import { createCampaign } from '../../src/main/repositories/campaign-repo';
 
 const baseInput: PlayerInput = {
   playerName: 'Alice',
   army: 'Lions',
   notes: 'Ready',
-  config: { points: 1000 },
+  config: '{"points":1000}',
 };
 
 describe('player-repo', () => {
-  beforeEach(() => {
-    getDatabaseMock.mockReset();
+  let campaignId: number;
+
+  beforeEach(async () => {
+    await setupTestDatabase();
+    const campaign = await createCampaign('Test Campaign');
+    campaignId = campaign.id;
   });
 
-  it('lists players and parses config JSON', () => {
-    const rows = [
-      {
-        id: 7,
-        campaign_id: 1,
-        playerName: 'Alice',
-        army: 'Lions',
-        notes: 'Ready',
-        config: '{"points":1000}',
-        created_at: '2026-05-03T00:00:00Z',
-      },
-    ];
-
-    const db = {
-      prepare: vi.fn(() => ({ all: vi.fn(() => rows) })),
-    };
-
-    getDatabaseMock.mockReturnValue(db);
-
-    expect(listPlayersByCampaign(1)).toEqual([
-      {
-        ...rows[0],
-        config: { points: 1000 },
-      },
-    ]);
+  afterEach(async () => {
+    await closeTestDatabase();
   });
 
-  it('creates a player and returns parsed row', () => {
-    const row = {
-      id: 8,
-      campaign_id: 1,
-      playerName: 'Alice',
-      army: 'Lions',
-      notes: 'Ready',
-      config: '{"points":1000}',
-      created_at: '2026-05-03T00:00:00Z',
-    };
+  it('lists players', async () => {
+    const p1 = await createPlayer(campaignId, baseInput);
+    const p2 = await createPlayer(campaignId, { ...baseInput, playerName: 'Bob' });
 
-    const db = {
-      prepare: vi.fn((sql: string) => {
-        if (sql.includes('INSERT INTO players')) {
-          return { run: vi.fn(() => ({ lastInsertRowid: 8 })) };
-        }
-
-        return { get: vi.fn(() => row) };
-      }),
-    };
-
-    getDatabaseMock.mockReturnValue(db);
-
-    expect(createPlayer(1, baseInput)).toEqual({ ...row, config: { points: 1000 } });
+    const list = await listPlayersByCampaign(campaignId);
+    expect(list).toHaveLength(2);
+    expect(list[0].id).toBe(p2.id);
+    expect(list[1].id).toBe(p1.id);
   });
 
-  it('updates a player and returns parsed row', () => {
-    const row = {
-      id: 9,
-      campaign_id: 1,
-      playerName: 'Bob',
-      army: 'Wolves',
-      notes: 'Updated',
-      config: '{"points":1500}',
-      created_at: '2026-05-03T00:00:00Z',
-    };
+  it('creates a player and returns row', async () => {
+    const player = await createPlayer(campaignId, baseInput);
+    expect(player.playerName).toBe('Alice');
+    expect(player.army).toBe('Lions');
+    expect(player.config).toBe('{"points":1000}');
+    expect(player.id).toBeDefined();
+  });
 
-    const db = {
-      prepare: vi.fn((sql: string) => {
-        if (sql.includes('UPDATE players')) {
-          return { run: vi.fn(() => ({ changes: 1 })) };
-        }
-
-        return { get: vi.fn(() => row) };
-      }),
-    };
-
-    getDatabaseMock.mockReturnValue(db);
-
-    expect(
-      updatePlayer(9, {
+  it('updates a player and returns row', async () => {
+    const player = await createPlayer(campaignId, baseInput);
+    
+    const updated = await updatePlayer(player.id, {
         playerName: 'Bob',
         army: 'Wolves',
         notes: 'Updated',
-        config: { points: 1500 },
-      }),
-    ).toEqual({ ...row, config: { points: 1500 } });
+        config: '{"points":1500}',
+    });
+
+    expect(updated.playerName).toBe('Bob');
+    expect(updated.army).toBe('Wolves');
+    expect(updated.config).toBe('{"points":1500}');
   });
 
-  it('validates player input', () => {
-    expect(() => createPlayer(1, { ...baseInput, playerName: '   ' })).toThrow(
+  it('validates player input', async () => {
+    await expect(createPlayer(campaignId, { ...baseInput, playerName: '   ' })).rejects.toThrow(
       'Player name is required.',
     );
-    expect(() => createPlayer(1, { ...baseInput, army: '   ' })).toThrow(
+    await expect(createPlayer(campaignId, { ...baseInput, army: '   ' })).rejects.toThrow(
       'Army is required.',
     );
   });

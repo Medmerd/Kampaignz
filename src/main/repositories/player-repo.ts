@@ -6,7 +6,7 @@ export type Player = {
   playerName: string;
   army: string;
   notes: string;
-  config: Record<string, unknown>;
+  config: string;
   created_at: string;
 };
 
@@ -14,28 +14,18 @@ export type PlayerInput = {
   playerName: string;
   army: string;
   notes: string;
-  config: Record<string, unknown>;
+  config: string;
 };
 
-type PlayerRow = Omit<Player, 'config'> & { config: string };
-
-const mapPlayerRow = (row: PlayerRow): Player => ({
-  ...row,
-  config: JSON.parse(row.config) as Record<string, unknown>,
-});
-
-export const listPlayersByCampaign = (campaignId: number) => {
+export const listPlayersByCampaign = async (campaignId: number): Promise<Player[]> => {
   const db = getDatabase();
-  const rows = db
-    .prepare(
-      'SELECT id, campaign_id, playerName, army, notes, config, created_at FROM players WHERE campaign_id = ? ORDER BY id DESC',
-    )
-    .all(campaignId) as PlayerRow[];
-
-  return rows.map(mapPlayerRow);
+  return db('players')
+    .select('id', 'campaign_id', 'playerName', 'army', 'notes', 'config', 'created_at')
+    .where({ campaign_id: campaignId })
+    .orderBy('id', 'desc') as Promise<Player[]>;
 };
 
-export const createPlayer = (campaignId: number, input: PlayerInput) => {
+export const createPlayer = async (campaignId: number, input: PlayerInput): Promise<Player> => {
   const playerName = input.playerName.trim();
   const army = input.army.trim();
 
@@ -48,32 +38,32 @@ export const createPlayer = (campaignId: number, input: PlayerInput) => {
   }
 
   const db = getDatabase();
-  const result = db
-    .prepare(
-      'INSERT INTO players (campaign_id, playerName, army, notes, config) VALUES (?, ?, ?, ?, ?)',
-    )
-    .run(
-      campaignId,
+  
+  return db.transaction(async (trx) => {
+    const insertResult = await trx('players').insert({
+      campaign_id: campaignId,
       playerName,
       army,
-      input.notes.trim(),
-      JSON.stringify(input.config),
-    );
+      notes: input.notes.trim(),
+      config: input.config,
+    }).returning('id');
 
-  const row = db
-    .prepare(
-      'SELECT id, campaign_id, playerName, army, notes, config, created_at FROM players WHERE id = ?',
-    )
-    .get(result.lastInsertRowid) as PlayerRow | undefined;
+    const insertedId = typeof insertResult[0] === 'object' ? insertResult[0].id : insertResult[0];
 
-  if (!row) {
-    throw new Error('Failed to create player.');
-  }
+    const row = await trx('players')
+      .select('id', 'campaign_id', 'playerName', 'army', 'notes', 'config', 'created_at')
+      .where({ id: insertedId })
+      .first() as Promise<Player | undefined>;
 
-  return mapPlayerRow(row);
+    if (!row) {
+      throw new Error('Failed to create player.');
+    }
+
+    return row;
+  });
 };
 
-export const updatePlayer = (playerId: number, input: PlayerInput) => {
+export const updatePlayer = async (playerId: number, input: PlayerInput): Promise<Player> => {
   const playerName = input.playerName.trim();
   const army = input.army.trim();
 
@@ -86,25 +76,28 @@ export const updatePlayer = (playerId: number, input: PlayerInput) => {
   }
 
   const db = getDatabase();
-  const result = db
-    .prepare(
-      'UPDATE players SET playerName = ?, army = ?, notes = ?, config = ? WHERE id = ?',
-    )
-    .run(playerName, army, input.notes.trim(), JSON.stringify(input.config), playerId);
 
-  if (result.changes === 0) {
+  const changes = await db('players')
+    .where({ id: playerId })
+    .update({
+      playerName,
+      army,
+      notes: input.notes.trim(),
+      config: input.config,
+    });
+
+  if (changes === 0) {
     throw new Error('Player not found.');
   }
 
-  const row = db
-    .prepare(
-      'SELECT id, campaign_id, playerName, army, notes, config, created_at FROM players WHERE id = ?',
-    )
-    .get(playerId) as PlayerRow | undefined;
+  const row = await db('players')
+    .select('id', 'campaign_id', 'playerName', 'army', 'notes', 'config', 'created_at')
+    .where({ id: playerId })
+    .first() as Promise<Player | undefined>;
 
   if (!row) {
     throw new Error('Failed to update player.');
   }
 
-  return mapPlayerRow(row);
+  return row;
 };

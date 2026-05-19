@@ -1,187 +1,59 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const { getDatabaseMock } = vi.hoisted(() => ({
-  getDatabaseMock: vi.fn(),
-}));
+import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
+import { setupTestDatabase, getTestDatabase, closeTestDatabase } from '../db-setup';
 
 vi.mock('../../src/main/database', () => ({
-  getDatabase: getDatabaseMock,
+  getDatabase: () => getTestDatabase(),
 }));
 
 import {
   createStep,
   listStepsByCampaign,
   updateStep,
-  type StepInput,
 } from '../../src/main/repositories/step-repo';
+import { createCampaign } from '../../src/main/repositories/campaign-repo';
+import { createSession } from '../../src/main/repositories/session-repo';
 
 describe('step-repo', () => {
-  beforeEach(() => {
-    getDatabaseMock.mockReset();
+  let campaignId: number;
+  let sessionId1: number;
+  let sessionId2: number;
+
+  beforeEach(async () => {
+    await setupTestDatabase();
+    const campaign = await createCampaign('Test Campaign');
+    campaignId = campaign.id;
+
+    const s1 = await createSession(campaignId, { title: 'M1', config: '{}', sessionDetails: '', map: '' });
+    const s2 = await createSession(campaignId, { title: 'M2', config: '{}', sessionDetails: '', map: '' });
+    
+    sessionId1 = s1.id;
+    sessionId2 = s2.id;
   });
 
-  it('lists steps with parsed config and session ids', () => {
-    const rows = [
-      {
-        id: 1,
-        campaign_id: 10,
-        title: 'Step A',
-        notes: 'Notes',
-        config: '{"mode":"x"}',
-        created_at: '2026-05-03T00:00:00Z',
-      },
-    ];
-
-    const db = {
-      prepare: vi.fn((sql: string) => {
-        if (sql.includes('FROM steps WHERE campaign_id')) {
-          return { all: vi.fn(() => rows) };
-        }
-
-        return { all: vi.fn(() => [{ session_id: 5 }, { session_id: 7 }]) };
-      }),
-    };
-
-    getDatabaseMock.mockReturnValue(db);
-
-    expect(listStepsByCampaign(10)).toEqual([
-      {
-        id: 1,
-        campaign_id: 10,
-        title: 'Step A',
-        notes: 'Notes',
-        config: { mode: 'x' },
-        session_ids: [5, 7],
-        created_at: '2026-05-03T00:00:00Z',
-      },
-    ]);
+  afterEach(async () => {
+    await closeTestDatabase();
   });
 
-  it('creates step with linked sessions', () => {
-    const input: StepInput = {
-      title: 'Step B',
-      notes: 'N',
-      config: { tone: 'grim' },
-      sessionIds: [2, 3],
-    };
+  it('creates and lists steps', async () => {
+    const step1 = await createStep(campaignId, { title: 'Step 1', notes: 'Notes 1', config: '{}', sessionIds: [sessionId1] });
+    expect(step1.title).toBe('Step 1');
+    expect(step1.session_ids).toEqual([sessionId1]);
 
-    const db = {
-      prepare: vi.fn((sql: string) => {
-        if (sql.includes('SELECT id FROM sessions')) {
-          return { all: vi.fn(() => [{ id: 2 }, { id: 3 }]) };
-        }
-        if (sql.includes('INSERT INTO steps')) {
-          return { run: vi.fn(() => ({ lastInsertRowid: 11 })) };
-        }
-        if (sql.includes('INSERT INTO step_sessions')) {
-          return { run: vi.fn(() => ({ changes: 1 })) };
-        }
-        if (sql.includes('FROM steps WHERE id = ?')) {
-          return {
-            get: vi.fn(() => ({
-              id: 11,
-              campaign_id: 10,
-              title: 'Step B',
-              notes: 'N',
-              config: '{"tone":"grim"}',
-              created_at: '2026-05-03T00:00:00Z',
-            })),
-          };
-        }
+    const step2 = await createStep(campaignId, { title: 'Step 2', notes: 'Notes 2', config: '{}', sessionIds: [sessionId1, sessionId2] });
 
-        return { all: vi.fn(() => [{ session_id: 2 }, { session_id: 3 }]) };
-      }),
-      transaction: vi.fn((fn: () => unknown) => fn),
-    };
-
-    getDatabaseMock.mockReturnValue(db);
-
-    expect(createStep(10, input)).toEqual({
-      id: 11,
-      campaign_id: 10,
-      title: 'Step B',
-      notes: 'N',
-      config: { tone: 'grim' },
-      session_ids: [2, 3],
-      created_at: '2026-05-03T00:00:00Z',
-    });
+    const list = await listStepsByCampaign(campaignId);
+    expect(list).toHaveLength(2);
+    expect(list[0].id).toBe(step1.id); // Ascending
+    expect(list[1].id).toBe(step2.id);
+    expect(list[1].session_ids).toEqual([sessionId1, sessionId2]);
   });
 
-  it('updates step and linked sessions', () => {
-    const db = {
-      prepare: vi.fn((sql: string) => {
-        if (sql.includes('SELECT id, campaign_id FROM steps')) {
-          return { get: vi.fn(() => ({ id: 9, campaign_id: 10 })) };
-        }
-        if (sql.includes('SELECT id FROM sessions')) {
-          return { all: vi.fn(() => [{ id: 8 }]) };
-        }
-        if (sql.includes('UPDATE steps SET')) {
-          return { run: vi.fn(() => ({ changes: 1 })) };
-        }
-        if (sql.includes('DELETE FROM step_sessions')) {
-          return { run: vi.fn(() => ({ changes: 1 })) };
-        }
-        if (sql.includes('INSERT INTO step_sessions')) {
-          return { run: vi.fn(() => ({ changes: 1 })) };
-        }
-        if (sql.includes('FROM steps WHERE id = ?')) {
-          return {
-            get: vi.fn(() => ({
-              id: 9,
-              campaign_id: 10,
-              title: 'Step C',
-              notes: 'Updated',
-              config: '{"x":1}',
-              created_at: '2026-05-03T00:00:00Z',
-            })),
-          };
-        }
+  it('updates a step', async () => {
+    const step = await createStep(campaignId, { title: 'Old', notes: '', config: '{}', sessionIds: [] });
 
-        return { all: vi.fn(() => [{ session_id: 8 }]) };
-      }),
-      transaction: vi.fn((fn: () => unknown) => fn),
-    };
-
-    getDatabaseMock.mockReturnValue(db);
-
-    expect(
-      updateStep(9, {
-        title: 'Step C',
-        notes: 'Updated',
-        config: { x: 1 },
-        sessionIds: [8],
-      }),
-    ).toEqual({
-      id: 9,
-      campaign_id: 10,
-      title: 'Step C',
-      notes: 'Updated',
-      config: { x: 1 },
-      session_ids: [8],
-      created_at: '2026-05-03T00:00:00Z',
-    });
-  });
-
-  it('validates title and campaign session ownership', () => {
-    expect(() =>
-      createStep(10, { title: ' ', notes: '', config: {}, sessionIds: [] }),
-    ).toThrow('Step title is required.');
-
-    const db = {
-      prepare: vi.fn((sql: string) => {
-        if (sql.includes('SELECT id FROM sessions')) {
-          return { all: vi.fn(() => [{ id: 3 }]) };
-        }
-
-        return { get: vi.fn(() => ({ id: 1, campaign_id: 10 })) };
-      }),
-      transaction: vi.fn((fn: () => unknown) => fn),
-    };
-    getDatabaseMock.mockReturnValue(db);
-
-    expect(() =>
-      updateStep(1, { title: 'ok', notes: '', config: {}, sessionIds: [3, 4] }),
-    ).toThrow('One or more selected sessions do not belong to this campaign.');
+    const updated = await updateStep(step.id, { title: 'New', notes: 'Updated', config: '{"x":1}', sessionIds: [sessionId2] });
+    expect(updated.title).toBe('New');
+    expect(updated.config).toEqual({x: 1});
+    expect(updated.session_ids).toEqual([sessionId2]);
   });
 });

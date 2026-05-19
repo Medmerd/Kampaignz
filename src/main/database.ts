@@ -1,11 +1,15 @@
 import { app } from 'electron';
 import path from 'node:path';
-import Database from 'better-sqlite3';
-import { runMigrations } from './migrations/migration-runner';
+import knex, { Knex } from 'knex';
+import * as dotenv from 'dotenv';
+// @ts-ignore
+const knexConfig = require('../../knexfile.js');
 
-let db: Database.Database | null = null;
+dotenv.config();
 
-export const getDatabase = () => {
+let db: Knex | null = null;
+
+export const getDatabase = (): Knex => {
   if (!db) {
     throw new Error('Database is not initialized.');
   }
@@ -13,27 +17,43 @@ export const getDatabase = () => {
   return db;
 };
 
-export const initializeDatabase = () => {
+export const initializeDatabase = async (): Promise<Knex> => {
   if (db) {
     return db;
   }
 
-  const dbPath = path.join(app.getPath('userData'), 'kampaignz.db');
+  const environment = process.env.VITE_DB_CLIENT || 'development';
+  const config = knexConfig[environment];
+  console.log('Using database environment:', environment, config);
 
-  db = new Database(dbPath);
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
+  if (!config) {
+    throw new Error(`Knex configuration not found for environment: ${environment}`);
+  }
 
-  runMigrations(db);
+  if (config.client === 'sqlite3' || config.client === 'better-sqlite3') {
+    if (!config.connection) {
+      config.connection = {};
+    }
+    if (config.connection.filename === './dev.sqlite3') {
+      config.connection.filename = path.join(app.getPath('userData'), 'kampaignz.db');
+    }
+    config.useNullAsDefault = true;
+  }
+
+  db = knex(config);
+
+  if (config.client === 'sqlite3' || config.client === 'better-sqlite3') {
+    await db.migrate.latest(config.migrations);
+  }
 
   return db;
 };
 
-export const closeDatabase = () => {
+export const closeDatabase = async (): Promise<void> => {
   if (!db) {
     return;
   }
 
-  db.close();
+  await db.destroy();
   db = null;
 };

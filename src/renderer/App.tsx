@@ -1,32 +1,29 @@
-import { useEffect, useRef } from 'react';
-import { createRouter } from './router';
-import { renderCampaignDetailScreen } from './screens/campaign-detail-screen';
-import { renderCampaignListScreen } from './screens/campaign-list-screen';
+import React, { useState, useEffect, useRef } from 'react';
+import CampaignList from './screens/CampaignList';
+import CampaignDetails from './screens/campaign-details/index'
+import type { Route } from './types';
+
+
 
 export default function App() {
-  const rootRef = useRef<HTMLDivElement | null>(null);
+  const [route, setRoute] = useState<Route>({ name: 'campaign-list' });
 
-  useEffect(() => {
-    if (!rootRef.current) {
-      return;
-    }
+  if (route.name === 'campaign-list') {
+    return (
+      <CampaignList 
+        onSelectCampaign={(id) => setRoute({ name: 'campaign-detail', campaignId: id })} 
+      />
+    );
+  }
 
-    const root = rootRef.current;
-    const router = createRouter(async (route) => {
-      if (route.name === 'campaign-list') {
-        await renderCampaignListScreen({ root, router });
-        return;
-      }
+  if (route.name === 'campaign-detail') {
+    return (
+      <CampaignDetails 
+        campaignId={route.campaignId} 
+        onBack={() => setRoute({ name: 'campaign-list' })} 
+      />
+    );
+  }
 
-      await renderCampaignDetailScreen({
-        root,
-        router,
-        campaignId: route.campaignId,
-      });
-    });
-
-    void router.goToCampaignList();
-  }, []);
-
-  return <div ref={rootRef} />;
+  return <div>Unknown Route</div>;
 }
