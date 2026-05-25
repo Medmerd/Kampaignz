@@ -32,56 +32,41 @@ type PlayerInput = {
   config: Record<string, unknown>;
 };
 
-// type Message = {
-//   id: number;
-//   campaign_id: number;
-//   content: string;
-//   config: Record<string, unknown>;
-//   player_ids: number[];
-//   created_at: string;
-// };
+type Mission = {
+  id: number;
+  campaign_id: number;
+  title: string;
+  config: Record<string, unknown>;
+  missionDetails: string;
+  map: string;
+  created_at: string;
+};
 
-// type MessageInput = {
-//   content: string;
-//   config: Record<string, unknown>;
-//   playerIds: number[];
-// };
+type MissionInput = {
+  title: string;
+  config: Record<string, unknown>;
+  missionDetails: string;
+  map: string;
+};
 
 type Session = {
   id: number;
   campaign_id: number;
   title: string;
+  notes: string;
   config: Record<string, unknown>;
-  sessionDetails: string;
-  map: string;
+  mission_ids: number[];
   created_at: string;
 };
 
 type SessionInput = {
   title: string;
-  config: Record<string, unknown>;
-  sessionDetails: string;
-  map: string;
-};
-
-type Step = {
-  id: number;
-  campaign_id: number;
-  title: string;
   notes: string;
   config: Record<string, unknown>;
-  session_ids: number[];
-  created_at: string;
+  missionIds: number[];
 };
 
-type StepInput = {
-  title: string;
-  notes: string;
-  config: Record<string, unknown>;
-  sessionIds: number[];
-};
-
-type SessionMatch = {
+type MissionMatch = {
   matchType: 1 | 2 | 4;
   teamAPlayerIds: number[];
   teamBPlayerIds: number[];
@@ -111,22 +96,26 @@ const api = {
     ipcRenderer.invoke('messages:generateFromConfig', config) as Promise<string>,
   sendMessageToDiscord: (content: string) =>
     ipcRenderer.invoke('messages:sendToDiscord', content) as Promise<void>,
+  
+  // Wargaming Missions (formerly Sessions)
+  listMissionsByCampaign: (campaignId: number) =>
+    ipcRenderer.invoke('missions:listByCampaign', campaignId) as Promise<Mission[]>,
+  createMission: (campaignId: number, input: MissionInput) =>
+    ipcRenderer.invoke('missions:create', campaignId, input) as Promise<Mission>,
+  updateMission: (missionId: number, input: MissionInput) =>
+    ipcRenderer.invoke('missions:update', missionId, input) as Promise<Mission>,
+  listMissionMatches: (missionId: number) =>
+    ipcRenderer.invoke('missions:listMatches', missionId) as Promise<MissionMatch[]>,
+  replaceMissionMatches: (missionId: number, matches: MissionMatch[]) =>
+    ipcRenderer.invoke('missions:replaceMatches', missionId, matches) as Promise<void>,
+  
+  // Chronological RPG Sessions (formerly Steps)
   listSessionsByCampaign: (campaignId: number) =>
     ipcRenderer.invoke('sessions:listByCampaign', campaignId) as Promise<Session[]>,
   createSession: (campaignId: number, input: SessionInput) =>
     ipcRenderer.invoke('sessions:create', campaignId, input) as Promise<Session>,
   updateSession: (sessionId: number, input: SessionInput) =>
     ipcRenderer.invoke('sessions:update', sessionId, input) as Promise<Session>,
-  listSessionMatches: (sessionId: number) =>
-    ipcRenderer.invoke('sessions:listMatches', sessionId) as Promise<SessionMatch[]>,
-  replaceSessionMatches: (sessionId: number, matches: SessionMatch[]) =>
-    ipcRenderer.invoke('sessions:replaceMatches', sessionId, matches) as Promise<void>,
-  listStepsByCampaign: (campaignId: number) =>
-    ipcRenderer.invoke('steps:listByCampaign', campaignId) as Promise<Step[]>,
-  createStep: (campaignId: number, input: StepInput) =>
-    ipcRenderer.invoke('steps:create', campaignId, input) as Promise<Step>,
-  updateStep: (stepId: number, input: StepInput) =>
-    ipcRenderer.invoke('steps:update', stepId, input) as Promise<Step>,
 };
 
 contextBridge.exposeInMainWorld('api', api);

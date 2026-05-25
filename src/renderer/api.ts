@@ -5,49 +5,77 @@ import type {
   MessageInput,
   Player,
   PlayerInput,
+  Mission,
+  MissionInput,
+  MissionMatch,
   Session,
-  SessionMatch,
   SessionInput,
-  Step,
-  StepInput,
 } from './types';
 
+// Safely determine if running inside Electron or a standard Web browser
+const isElectron = typeof window !== 'undefined' && (window as any).api !== undefined;
+
+// Fallback client for Web pod environments mirroring Electron's native IPC bridge
+const rpcClient = async (channel: string, ...args: any[]): Promise<any> => {
+  const response = await fetch('/api/rpc', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ channel, args }),
+  });
+
+  if (!response.ok) {
+    const errorDetails = await response.json().catch(() => ({}));
+    throw new Error(errorDetails.message || `RPC request to '${channel}' failed with status ${response.status}`);
+  }
+
+  return response.json();
+};
+
 export const api = {
-  createCampaign: (name: string) => window.api.createCampaign(name) as Promise<Campaign>,
-  listCampaigns: () => window.api.listCampaigns() as Promise<Campaign[]>,
-  getCampaign: (id: number) => window.api.getCampaign(id) as Promise<Campaign>,
+  createCampaign: (name: string) =>
+    isElectron ? (window as any).api.createCampaign(name) : rpcClient('campaigns:create', name),
+  listCampaigns: () =>
+    isElectron ? (window as any).api.listCampaigns() : rpcClient('campaigns:list'),
+  getCampaign: (id: number) =>
+    isElectron ? (window as any).api.getCampaign(id) : rpcClient('campaigns:get', id),
   updateCampaignDetails: (id: number, input: CampaignDetailsInput) =>
-    window.api.updateCampaignDetails(id, input) as Promise<Campaign>,
+    isElectron ? (window as any).api.updateCampaignDetails(id, input) : rpcClient('campaigns:updateDetails', id, input),
   listPlayersByCampaign: (campaignId: number) =>
-    window.api.listPlayersByCampaign(campaignId) as Promise<Player[]>,
+    isElectron ? (window as any).api.listPlayersByCampaign(campaignId) : rpcClient('players:listByCampaign', campaignId),
   createPlayer: (campaignId: number, input: PlayerInput) =>
-    window.api.createPlayer(campaignId, input) as Promise<Player>,
+    isElectron ? (window as any).api.createPlayer(campaignId, input) : rpcClient('players:create', campaignId, input),
   updatePlayer: (playerId: number, input: PlayerInput) =>
-    window.api.updatePlayer(playerId, input) as Promise<Player>,
+    isElectron ? (window as any).api.updatePlayer(playerId, input) : rpcClient('players:update', playerId, input),
   listMessagesByCampaign: (campaignId: number) =>
-    window.api.listMessagesByCampaign(campaignId) as Promise<Message[]>,
+    isElectron ? (window as any).api.listMessagesByCampaign(campaignId) : rpcClient('messages:listByCampaign', campaignId),
   createMessage: (campaignId: number, input: MessageInput) =>
-    window.api.createMessage(campaignId, input) as Promise<Message>,
+    isElectron ? (window as any).api.createMessage(campaignId, input) : rpcClient('messages:create', campaignId, input),
   updateMessage: (messageId: number, input: MessageInput) =>
-    window.api.updateMessage(messageId, input) as Promise<Message>,
+    isElectron ? (window as any).api.updateMessage(messageId, input) : rpcClient('messages:update', messageId, input),
   generateMessageFromConfig: (config: Record<string, unknown>) =>
-    window.api.generateMessageFromConfig(config) as Promise<string>,
+    isElectron ? (window as any).api.generateMessageFromConfig(config) : rpcClient('messages:generateFromConfig', config),
   sendMessageToDiscord: (content: string) =>
-    window.api.sendMessageToDiscord(content) as Promise<void>,
+    isElectron ? (window as any).api.sendMessageToDiscord(content) : rpcClient('messages:sendToDiscord', content),
+  
+  // Wargaming Missions (formerly Sessions)
+  listMissionsByCampaign: (campaignId: number) =>
+    isElectron ? (window as any).api.listMissionsByCampaign(campaignId) : rpcClient('missions:listByCampaign', campaignId),
+  createMission: (campaignId: number, input: MissionInput) =>
+    isElectron ? (window as any).api.createMission(campaignId, input) : rpcClient('missions:create', campaignId, input),
+  updateMission: (missionId: number, input: MissionInput) =>
+    isElectron ? (window as any).api.updateMission(missionId, input) : rpcClient('missions:update', missionId, input),
+  listMissionMatches: (missionId: number) =>
+    isElectron ? (window as any).api.listMissionMatches(missionId) : rpcClient('missions:listMatches', missionId),
+  replaceMissionMatches: (missionId: number, matches: MissionMatch[]) =>
+    isElectron ? (window as any).api.replaceMissionMatches(missionId, matches) : rpcClient('missions:replaceMatches', missionId, matches),
+  
+  // Chronological RPG Sessions (formerly Steps)
   listSessionsByCampaign: (campaignId: number) =>
-    window.api.listSessionsByCampaign(campaignId) as Promise<Session[]>,
+    isElectron ? (window as any).api.listSessionsByCampaign(campaignId) : rpcClient('sessions:listByCampaign', campaignId),
   createSession: (campaignId: number, input: SessionInput) =>
-    window.api.createSession(campaignId, input) as Promise<Session>,
+    isElectron ? (window as any).api.createSession(campaignId, input) : rpcClient('sessions:create', campaignId, input),
   updateSession: (sessionId: number, input: SessionInput) =>
-    window.api.updateSession(sessionId, input) as Promise<Session>,
-  listSessionMatches: (sessionId: number) =>
-    window.api.listSessionMatches(sessionId) as Promise<SessionMatch[]>,
-  replaceSessionMatches: (sessionId: number, matches: SessionMatch[]) =>
-    window.api.replaceSessionMatches(sessionId, matches) as Promise<void>,
-  listStepsByCampaign: (campaignId: number) =>
-    window.api.listStepsByCampaign(campaignId) as Promise<Step[]>,
-  createStep: (campaignId: number, input: StepInput) =>
-    window.api.createStep(campaignId, input) as Promise<Step>,
-  updateStep: (stepId: number, input: StepInput) =>
-    window.api.updateStep(stepId, input) as Promise<Step>,
+    isElectron ? (window as any).api.updateSession(sessionId, input) : rpcClient('sessions:update', sessionId, input),
 };

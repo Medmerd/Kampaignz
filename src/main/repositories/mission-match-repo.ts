@@ -1,12 +1,12 @@
 import { getDatabase } from '../database';
 
-export type SessionMatch = {
+export type MissionMatch = {
   matchType: 1 | 2 | 4;
   teamAPlayerIds: number[];
   teamBPlayerIds: number[];
 };
 
-const validateMatches = (matches: SessionMatch[]) => {
+const validateMatches = (matches: MissionMatch[]) => {
   const seen = new Set<number>();
 
   for (const match of matches) {
@@ -28,18 +28,18 @@ const validateMatches = (matches: SessionMatch[]) => {
 
     for (const id of combined) {
       if (seen.has(id)) {
-        throw new Error('A player cannot be selected more than once in a session.');
+        throw new Error('A player cannot be selected more than once in a mission.');
       }
       seen.add(id);
     }
   }
 };
 
-export const listSessionMatches = async (sessionId: number): Promise<SessionMatch[]> => {
+export const listMissionMatches = async (missionId: number): Promise<MissionMatch[]> => {
   const db = getDatabase();
   const rows = await db('missionMatchTeam')
     .select('matchId', 'teamAId', 'teamBId', 'matchType')
-    .where({ missionId: sessionId })
+    .where({ missionId })
     .orderBy('matchId', 'asc');
 
   const matches = [];
@@ -58,17 +58,17 @@ export const listSessionMatches = async (sessionId: number): Promise<SessionMatc
   return matches;
 };
 
-export const replaceSessionMatches = async (sessionId: number, matches: SessionMatch[]): Promise<void> => {
+export const replaceMissionMatches = async (missionId: number, matches: MissionMatch[]): Promise<void> => {
   validateMatches(matches);
   const db = getDatabase();
 
-  const session = await db('missions')
+  const mission = await db('missions')
     .select('id', 'campaign_id')
-    .where({ id: sessionId })
+    .where({ id: missionId })
     .first();
 
-  if (!session) {
-    throw new Error('Session not found.');
+  if (!mission) {
+    throw new Error('Mission not found.');
   }
 
   const playerIds = matches.flatMap((match) => [
@@ -80,7 +80,7 @@ export const replaceSessionMatches = async (sessionId: number, matches: SessionM
     const unique = Array.from(new Set(playerIds));
     const rows = await db('players')
       .select('id')
-      .where({ campaign_id: session.campaign_id })
+      .where({ campaign_id: mission.campaign_id })
       .whereIn('id', unique);
 
     const found = new Set(rows.map((row: any) => row.id));
@@ -95,7 +95,7 @@ export const replaceSessionMatches = async (sessionId: number, matches: SessionM
   return db.transaction(async (trx) => {
     const current = await trx('missionMatchTeam')
       .select('teamAId', 'teamBId')
-      .where({ missionId: sessionId });
+      .where({ missionId });
 
     for (const team of current) {
       await trx('missionMatch')
@@ -103,7 +103,7 @@ export const replaceSessionMatches = async (sessionId: number, matches: SessionM
         .delete();
     }
 
-    await trx('missionMatchTeam').where({ missionId: sessionId }).delete();
+    await trx('missionMatchTeam').where({ missionId }).delete();
 
     let nextTeamId = Date.now();
     let nextMatchId = Date.now();
@@ -115,7 +115,7 @@ export const replaceSessionMatches = async (sessionId: number, matches: SessionM
 
       await trx('missionMatchTeam').insert({
         matchId,
-        missionId: sessionId,
+        missionId,
         teamAId,
         teamBId,
         matchType: match.matchType,

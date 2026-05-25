@@ -6,17 +6,17 @@ vi.mock('../../src/main/database', () => ({
 }));
 
 import {
-  listSessionMatches,
-  replaceSessionMatches,
-  type SessionMatch,
-} from '../../src/main/repositories/session-match-repo';
+  listMissionMatches,
+  replaceMissionMatches,
+  type MissionMatch,
+} from '../../src/main/repositories/mission-match-repo';
 import { createCampaign } from '../../src/main/repositories/campaign-repo';
-import { createSession } from '../../src/main/repositories/session-repo';
+import { createMission } from '../../src/main/repositories/mission-repo';
 import { createPlayer } from '../../src/main/repositories/player-repo';
 
-describe('session-match-repo', () => {
+describe('mission-match-repo', () => {
   let campaignId: number;
-  let sessionId: number;
+  let missionId: number;
   let p1: number, p2: number, p3: number, p4: number;
 
   beforeEach(async () => {
@@ -24,8 +24,8 @@ describe('session-match-repo', () => {
     const campaign = await createCampaign('Test Campaign');
     campaignId = campaign.id;
 
-    const s1 = await createSession(campaignId, { title: 'M1', config: '{}', sessionDetails: '', map: '' });
-    sessionId = s1.id;
+    const m1 = await createMission(campaignId, { title: 'M1', config: {}, missionDetails: '', map: '' });
+    missionId = m1.id;
 
     const pl1 = await createPlayer(campaignId, { playerName: 'A', army: 'L', notes: '', config: '{}' });
     const pl2 = await createPlayer(campaignId, { playerName: 'B', army: 'L', notes: '', config: '{}' });
@@ -47,7 +47,7 @@ describe('session-match-repo', () => {
   });
 
   it('replaces and lists matches', async () => {
-    const matches: SessionMatch[] = [
+    const matches: MissionMatch[] = [
       {
         matchType: 1,
         teamAPlayerIds: [p1],
@@ -60,9 +60,9 @@ describe('session-match-repo', () => {
       }
     ];
 
-    await replaceSessionMatches(sessionId, matches);
+    await replaceMissionMatches(missionId, matches);
 
-    const list = await listSessionMatches(sessionId);
+    const list = await listMissionMatches(missionId);
     expect(list).toHaveLength(2);
     expect(list[0].matchType).toBe(1);
     expect(list[0].teamAPlayerIds).toEqual([p1]);
@@ -70,7 +70,7 @@ describe('session-match-repo', () => {
   });
 
   it('validates player uniqueness', async () => {
-    const matches: SessionMatch[] = [
+    const matches: MissionMatch[] = [
       {
         matchType: 1,
         teamAPlayerIds: [p1],
@@ -78,6 +78,6 @@ describe('session-match-repo', () => {
       }
     ];
 
-    await expect(replaceSessionMatches(sessionId, matches)).rejects.toThrow('A player cannot be selected more than once');
+    await expect(replaceMissionMatches(missionId, matches)).rejects.toThrow('A player cannot be selected more than once');
   });
 });

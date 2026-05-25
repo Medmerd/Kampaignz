@@ -5,8 +5,8 @@ import { closeDatabase, initializeDatabase } from './main/database';
 import { registerCampaignIpc } from './main/ipc/campaign-ipc';
 import { registerMessageIpc } from './main/ipc/message-ipc';
 import { registerPlayerIpc } from './main/ipc/player-ipc';
+import { registerMissionIpc } from './main/ipc/mission-ipc';
 import { registerSessionIpc } from './main/ipc/session-ipc';
-import { registerStepIpc } from './main/ipc/step-ipc';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -44,8 +44,8 @@ app.on('ready', async () => {
   registerCampaignIpc();
   registerPlayerIpc();
   registerMessageIpc();
+  registerMissionIpc();
   registerSessionIpc();
-  registerStepIpc();
   createWindow();
 });
 

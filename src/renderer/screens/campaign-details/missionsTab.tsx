@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from 'antd';
 import { api } from '../../api';
 import { formatDate } from '../../utils/format';
-import type { Session as Mission, TabOptions } from '../../types';
+import type { Mission, TabOptions } from '../../types';
 import MissionModal from './missionModal';
 
 const MissionsTab = ({ campaignId, notify }: TabOptions) => {
@@ -12,9 +12,9 @@ const MissionsTab = ({ campaignId, notify }: TabOptions) => {
 
     const loadData = async () => {
         try {
-            const data = await api.listSessionsByCampaign(campaignId);
+            const data = await api.listMissionsByCampaign(campaignId);
             setMissions(data);
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
             if (notify) {
                 notify('error', 'Failed to load missions', error.message || String(error));
@@ -65,7 +65,7 @@ const MissionsTab = ({ campaignId, notify }: TabOptions) => {
             </div>
 
             <MissionModal 
-                sessionId={selectedMissionId || 0} 
+                missionId={selectedMissionId || 0} 
                 campaignId={campaignId} 
                 isOpen={isDrawerOpen} 
                 onClose={onClose} 

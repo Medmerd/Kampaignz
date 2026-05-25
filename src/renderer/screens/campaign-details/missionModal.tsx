@@ -3,17 +3,17 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { Modal, Space, Button, Select, Typography, Divider, Row, Col } from 'antd';
 import { api } from '../../api';
 import type { 
-    Session as Mission, 
-    SessionInput as MissionInput, 
-    SessionModalOptions as MissionModalOptions, 
+    Mission, 
+    MissionInput, 
+    MissionModalOptions, 
     Player, 
-    SessionMatch as MissionMatch 
+    MissionMatch 
 } from '../../types';
 
 type MatchType = 1 | 2 | 4;
 
 const MissionModal = (options: MissionModalOptions) => {
-    const { campaignId, sessionId: missionId, isOpen, onClose, notify } = options;
+    const { campaignId, missionId, isOpen, onClose, notify } = options;
     
     const [players, setPlayers] = useState<Player[]>([]);
     const [draftMatches, setDraftMatches] = useState<MissionMatch[]>([]);
@@ -27,7 +27,7 @@ const MissionModal = (options: MissionModalOptions) => {
     const { register, reset, handleSubmit } = useForm<MissionInput>({ 
         defaultValues: {
             title: '',
-            sessionDetails: '',
+            missionDetails: '',
             map: '',
             config: '{}',
         }
@@ -43,8 +43,8 @@ const MissionModal = (options: MissionModalOptions) => {
             if (missionId) {
                 // Wait for both to load
                 const [missionDataList, matchData] = await Promise.all([
-                    api.listSessionsByCampaign(campaignId),
-                    api.listSessionMatches(missionId)
+                    api.listMissionsByCampaign(campaignId),
+                    api.listMissionMatches(missionId)
                 ]);
                 
                 const missionData = missionDataList.find(m => m.id === missionId);
@@ -53,7 +53,7 @@ const MissionModal = (options: MissionModalOptions) => {
                     setSelectedMission(missionData);
                     reset({
                         title: missionData.title,
-                        sessionDetails: missionData.sessionDetails,
+                        missionDetails: missionData.missionDetails,
                         map: missionData.map,
                         config: missionData.config || '{}',
                     });
@@ -71,7 +71,7 @@ const MissionModal = (options: MissionModalOptions) => {
                 setDraftMatches([]);
                 reset({
                     title: '',
-                    sessionDetails: '',
+                    missionDetails: '',
                     map: '',
                     config: '{}',
                 });
@@ -165,17 +165,17 @@ const MissionModal = (options: MissionModalOptions) => {
         try {
             let currentMissionId = missionId;
             if (!currentMissionId) {
-                const created = await api.createSession(campaignId, data);
+                const created = await api.createMission(campaignId, data);
                 currentMissionId = created.id;
                 if (notify) notify('success', 'Mission created successfully');
             } else {
-                await api.updateSession(currentMissionId, data);
+                await api.updateMission(currentMissionId, data);
                 if (notify) notify('success', 'Mission updated successfully');
             }
 
             // Save matches
             if (currentMissionId) {
-                await api.replaceSessionMatches(currentMissionId, draftMatches);
+                await api.replaceMissionMatches(currentMissionId, draftMatches);
             }
 
             onFormClose();
@@ -203,7 +203,7 @@ const MissionModal = (options: MissionModalOptions) => {
                     <Col span={12}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <label htmlFor="mission-details">Mission details</label>
-                            <textarea id="mission-details" rows={4} {...register('sessionDetails')}></textarea>
+                            <textarea id="mission-details" rows={4} {...register('missionDetails')}></textarea>
                             
                             <label htmlFor="mission-map" style={{ marginTop: 12 }}>Map</label>
                             <textarea id="mission-map" rows={3} {...register('map')}></textarea>

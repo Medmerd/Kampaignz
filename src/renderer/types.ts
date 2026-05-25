@@ -14,22 +14,22 @@ export type TabOptions = {
   notify?: NotifyFunction;
 };
 
-export type StepModalOptions = {
-  step: Step,
-  stepId: number,
+export type SessionModalOptions = {
+  session?: Session;
+  sessionId: number;
   campaignId: number;
   isOpen: boolean;
-  onClose: () => void,
-  notify?: NotifyFunction,
+  onClose: () => void;
+  notify?: NotifyFunction;
 };
 
-export type SessionModalOptions = {
-  session?: Session,
-  sessionId: number,
+export type MissionModalOptions = {
+  mission?: Mission;
+  missionId: number;
   campaignId: number;
   isOpen: boolean;
-  onClose: () => void,
-  notify?: NotifyFunction,
+  onClose: () => void;
+  notify?: NotifyFunction;
 };
 
 export type PlayerModalOptions = {
@@ -60,7 +60,7 @@ export type PlayerInput = {
   playerName: string;
   army: string;
   notes: string;
-  config: string; // Record<string, unknown>;
+  config: string;
 };
 
 export type JSONString<T> = string & { __brand: T };
@@ -69,64 +69,59 @@ export interface messageConfig {
   prompt: string;
 }
 
-
 export type Message = {
   id: number;
   campaign_id: number;
   content: string;
-  config: string; // Record<string, unknown> | JSONString<messageConfig>;
+  config: string;
   player_ids: number[];
   created_at: string;
 };
 
-
 export type MessageInput = {
   content: string;
-  config: string; // Record<string, unknown> | JSONString<messageConfig>;
+  config: string;
   playerIds: number[];
+};
+
+export type Mission = {
+  id: number;
+  campaign_id: number;
+  title: string;
+  config: string;
+  missionDetails: string;
+  map: string;
+  created_at: string;
+};
+
+export type MissionInput = {
+  title: string;
+  config: string;
+  missionDetails: string;
+  map: string;
+};
+
+export type MissionMatch = {
+  matchType: 1 | 2 | 4;
+  teamAPlayerIds: number[];
+  teamBPlayerIds: number[];
 };
 
 export type Session = {
   id: number;
   campaign_id: number;
   title: string;
-  config: string, // Record<string, unknown>;
-  sessionDetails: string;
-  map: string;
+  notes: string;
+  config: string;
+  mission_ids: number[];
   created_at: string;
 };
 
 export type SessionInput = {
   title: string;
-  config: string, // Record<string, unknown>;
-  sessionDetails: string;
-  map: string;
-};
-
-export type SessionMatch = {
-  matchType: 1 | 2 | 4;
-  teamAPlayerIds: number[];
-  teamBPlayerIds: number[];
-};
-
-export type Step = {
-  id: number;
-  campaign_id: number;
-  title: string;
-  notes: string;
-  config: string, //Record<string, unknown>;
-  session_ids: number[];
-  created_at: string;
-};
-
-export type StepInput = {
-  title: string;
   campaignId: number;
   notes: string;
   config: string;
-  sessionIds: number[];
+  missionIds: number[];
 };
 
-export type Route =
-  | { name: 'campaign-list' }
-  | { name: 'campaign-detail'; campaignId: number };

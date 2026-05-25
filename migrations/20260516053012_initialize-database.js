@@ -51,35 +51,35 @@ exports.up = async function (knex) {
             table.timestamp('created_at').notNullable().defaultTo(knex.fn.now());
             table.foreign('campaign_id').references('id').inTable('campaigns').onDelete('CASCADE');
         })
-        .createTable('steps', (table) => {
+        .createTable('sessions', (table) => {
             table.increments('id').primary();
-            table.integer('campaign_id').notNullable().index('idx_steps_campaign_id');
+            table.integer('campaign_id').notNullable().index('idx_sessions_campaign_id');
             table.string('title').notNullable();
             table.json('config').notNullable().defaultTo('{}');
-            table.string('stepDetails').notNullable().defaultTo('');
+            table.string('sessionDetails').notNullable().defaultTo('');
             table.string('map').notNullable().defaultTo('');
             table.timestamp('created_at').notNullable().defaultTo(knex.fn.now());
             table.foreign('campaign_id').references('id').inTable('campaigns').onDelete('CASCADE');
         })
-        .createTable('step_players', (table) => {
-            table.integer('step_id').notNullable();
-            table.integer('player_id').notNullable().index('idx_step_players_player_id');
-            table.primary(['step_id', 'player_id']);
-            table.foreign('step_id').references('id').inTable('steps').onDelete('CASCADE');
+        .createTable('session_players', (table) => {
+            table.integer('session_id').notNullable();
+            table.integer('player_id').notNullable().index('idx_session_players_player_id');
+            table.primary(['session_id', 'player_id']);
+            table.foreign('session_id').references('id').inTable('sessions').onDelete('CASCADE');
             table.foreign('player_id').references('id').inTable('players').onDelete('CASCADE');
         })
-        .createTable('step_missions', (table) => {
-            table.integer('step_id').notNullable();
-            table.integer('mission_id').notNullable().index('idx_step_missions_mission_id');
-            table.primary(['step_id', 'mission_id']);
-            table.foreign('step_id').references('id').inTable('steps').onDelete('CASCADE');
+        .createTable('session_missions', (table) => {
+            table.integer('session_id').notNullable();
+            table.integer('mission_id').notNullable().index('idx_session_missions_mission_id');
+            table.primary(['session_id', 'mission_id']);
+            table.foreign('session_id').references('id').inTable('sessions').onDelete('CASCADE');
             table.foreign('mission_id').references('id').inTable('missions').onDelete('CASCADE');
         })
-        .createTable('step_messages', (table) => {
-            table.integer('step_id').notNullable();
-            table.integer('message_id').notNullable().index('idx_step_messages_message_id');
-            table.primary(['step_id', 'message_id']);
-            table.foreign('step_id').references('id').inTable('steps').onDelete('CASCADE');
+        .createTable('session_messages', (table) => {
+            table.integer('session_id').notNullable();
+            table.integer('message_id').notNullable().index('idx_session_messages_message_id');
+            table.primary(['session_id', 'message_id']);
+            table.foreign('session_id').references('id').inTable('sessions').onDelete('CASCADE');
             table.foreign('message_id').references('id').inTable('messages').onDelete('CASCADE');
         })
         .createTable('missionMatchTypes', (table) => {
@@ -118,16 +118,16 @@ exports.down = async function (knex) {
     const isSqlite = knex.client.config.client === 'sqlite3' || knex.client.config.client === 'better-sqlite3';
     const schemaBuilder = isSqlite ? knex.schema : knex.schema.withSchema(schema);
 
-    await schemaBuilder.dropTableIfExists('step_players')
-    await schemaBuilder.dropTableIfExists('step_messages');
-    await schemaBuilder.dropTableIfExists('step_missions');
+    await schemaBuilder.dropTableIfExists('session_players')
+    await schemaBuilder.dropTableIfExists('session_messages');
+    await schemaBuilder.dropTableIfExists('session_missions');
     await schemaBuilder.dropTableIfExists('message_players');
     await schemaBuilder.dropTableIfExists('messages');
     await schemaBuilder.dropTableIfExists('missionMatch');
     await schemaBuilder.dropTableIfExists('players');
     await schemaBuilder.dropTableIfExists('missionMatchTeam');
     await schemaBuilder.dropTableIfExists('missionMatchTypes');
-    await schemaBuilder.dropTableIfExists('steps')
+    await schemaBuilder.dropTableIfExists('sessions')
     await schemaBuilder.dropTableIfExists('missions')
     await schemaBuilder.dropTableIfExists('campaigns');
 

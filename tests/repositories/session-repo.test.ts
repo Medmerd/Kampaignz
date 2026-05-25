@@ -9,68 +9,51 @@ import {
   createSession,
   listSessionsByCampaign,
   updateSession,
-  type SessionInput,
 } from '../../src/main/repositories/session-repo';
 import { createCampaign } from '../../src/main/repositories/campaign-repo';
-
-const baseInput: SessionInput = {
-  title: 'Mission 1',
-  config: { time: 'Day' },
-  sessionDetails: 'Briefing',
-  map: 'Map A',
-};
+import { createMission } from '../../src/main/repositories/mission-repo';
 
 describe('session-repo', () => {
   let campaignId: number;
+  let missionId1: number;
+  let missionId2: number;
 
   beforeEach(async () => {
     await setupTestDatabase();
     const campaign = await createCampaign('Test Campaign');
     campaignId = campaign.id;
+
+    const m1 = await createMission(campaignId, { title: 'M1', config: {}, missionDetails: '', map: '' });
+    const m2 = await createMission(campaignId, { title: 'M2', config: {}, missionDetails: '', map: '' });
+    
+    missionId1 = m1.id;
+    missionId2 = m2.id;
   });
 
   afterEach(async () => {
     await closeTestDatabase();
   });
 
-  it('lists sessions', async () => {
-    const s1 = await createSession(campaignId, baseInput);
-    const s2 = await createSession(campaignId, { ...baseInput, title: 'Mission 2' });
+  it('creates and lists sessions', async () => {
+    const session1 = await createSession(campaignId, { title: 'Session 1', notes: 'Notes 1', config: '{}', missionIds: [missionId1], campaignId });
+    expect(session1.title).toBe('Session 1');
+    expect(session1.mission_ids).toEqual([missionId1]);
+
+    const session2 = await createSession(campaignId, { title: 'Session 2', notes: 'Notes 2', config: '{}', missionIds: [missionId1, missionId2], campaignId });
 
     const list = await listSessionsByCampaign(campaignId);
     expect(list).toHaveLength(2);
-    expect(list[0].id).toBe(s2.id);
-    expect(list[1].id).toBe(s1.id);
+    expect(list[0].id).toBe(session1.id); // Ascending order
+    expect(list[1].id).toBe(session2.id);
+    expect(list[1].mission_ids).toEqual([missionId1, missionId2]);
   });
 
-  it('creates a session and returns row', async () => {
-    const session = await createSession(campaignId, baseInput);
-    expect(session.title).toBe('Mission 1');
-    expect(session.sessionDetails).toBe('Briefing');
-    expect(session.map).toBe('Map A');
-    expect(session.config).toEqual({ time: 'Day' });
-    expect(session.id).toBeDefined();
-  });
+  it('updates a session', async () => {
+    const session = await createSession(campaignId, { title: 'Old', notes: '', config: '{}', missionIds: [], campaignId });
 
-  it('updates a session and returns row', async () => {
-    const session = await createSession(campaignId, baseInput);
-    
-    const updated = await updateSession(session.id, {
-        title: 'Mission 1.5',
-        config: { time: 'Night' },
-        sessionDetails: 'Debriefing',
-        map: 'Map B',
-    });
-
-    expect(updated.title).toBe('Mission 1.5');
-    expect(updated.sessionDetails).toBe('Debriefing');
-    expect(updated.map).toBe('Map B');
-    expect(updated.config).toEqual({ time: 'Night' });
-  });
-
-  it('validates session title', async () => {
-    await expect(createSession(campaignId, { ...baseInput, title: '   ' })).rejects.toThrow(
-      'Session title is required.',
-    );
+    const updated = await updateSession(session.id, { title: 'New', notes: 'Updated', config: '{"x":1}', missionIds: [missionId2], campaignId });
+    expect(updated.title).toBe('New');
+    expect(updated.config).toEqual({x: 1});
+    expect(updated.mission_ids).toEqual([missionId2]);
   });
 });
