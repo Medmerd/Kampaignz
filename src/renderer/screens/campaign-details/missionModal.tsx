@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm, SubmitHandler } from "react-hook-form";
 import { Modal, Space, Button, Select, Typography, Divider, Row, Col } from 'antd';
+import MapCanvas from '../../components/map/MapCanvas';
 import { api } from '../../api';
 import type { 
     Mission, 
@@ -23,8 +24,9 @@ const MissionModal = (options: MissionModalOptions) => {
     const [teamA, setTeamA] = useState<number[]>([]);
     const [teamB, setTeamB] = useState<number[]>([]);
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
+    const [mapBuilderOpen, setMapBuilderOpen] = useState(false);
 
-    const { register, reset, handleSubmit } = useForm<MissionInput>({ 
+    const { register, reset, handleSubmit, setValue, getValues, watch } = useForm<MissionInput>({ 
         defaultValues: {
             title: '',
             missionDetails: '',
@@ -32,6 +34,8 @@ const MissionModal = (options: MissionModalOptions) => {
             config: '{}',
         }
     });
+
+    const currentMap = watch('map');
 
     const loadData = async () => {
         if (!isOpen) return;
@@ -186,6 +190,7 @@ const MissionModal = (options: MissionModalOptions) => {
     }, [missionId, campaignId, draftMatches, notify, onFormClose]);
 
     return (
+        <>
         <Modal
             title={selectedMission ? 'Edit mission' : 'Create mission'}
             closable={false}
@@ -205,8 +210,24 @@ const MissionModal = (options: MissionModalOptions) => {
                             <label htmlFor="mission-details">Mission details</label>
                             <textarea id="mission-details" rows={4} {...register('missionDetails')}></textarea>
                             
-                            <label htmlFor="mission-map" style={{ marginTop: 12 }}>Map</label>
-                            <textarea id="mission-map" rows={3} {...register('map')}></textarea>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 8 }}>
+                                <label>Map Preview</label>
+                                <Button 
+                                    type="primary" 
+                                    size="small"
+                                    onClick={() => setMapBuilderOpen(true)}
+                                >
+                                    Open Map Builder
+                                </Button>
+                            </div>
+                            <div style={{ height: 200, width: '100%', border: '1px solid #d9d9d9', borderRadius: 6, overflow: 'hidden', position: 'relative' }}>
+                                <MapCanvas 
+                                    key={currentMap?.length || 0} // Force remount on map update
+                                    readonly 
+                                    initialMapJson={currentMap || ''} 
+                                />
+                            </div>
+                            <input type="hidden" id="mission-map" {...register('map')} />
                             
                             <label htmlFor="mission-config" style={{ marginTop: 12 }}>Config (JSON object)</label>
                             <textarea id="mission-config" rows={4} {...register('config')}></textarea>
@@ -302,6 +323,26 @@ const MissionModal = (options: MissionModalOptions) => {
                 </Space>
             </form>
         </Modal>
+
+        <Modal
+            title="Map Builder"
+            open={mapBuilderOpen}
+            onCancel={() => setMapBuilderOpen(false)}
+            footer={null}
+            width="90vw"
+            style={{ top: 20 }}
+            styles={{ body: { height: '80vh', padding: 0 } }}
+            destroyOnClose
+        >
+            <MapCanvas 
+                initialMapJson={getValues('map') || ''} 
+                onSave={(json) => {
+                    setValue('map', json, { shouldDirty: true });
+                    setMapBuilderOpen(false);
+                }} 
+            />
+        </Modal>
+        </>
     )
 }
 
