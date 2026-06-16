@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { Message, MessageInput } from './renderer/types';
+import { Message, MessageInput, ArmyRulebook, Rule, PlayerRule } from './renderer/types';
 
 type Campaign = {
   id: number;
@@ -116,6 +116,44 @@ const api = {
     ipcRenderer.invoke('sessions:create', campaignId, input) as Promise<Session>,
   updateSession: (sessionId: number, input: SessionInput) =>
     ipcRenderer.invoke('sessions:update', sessionId, input) as Promise<Session>,
+
+  // Army Rules
+  createArmyRulebook: (campaignId: number, input: Pick<ArmyRulebook, 'name' | 'description'>) =>
+    ipcRenderer.invoke('armyRules:create', campaignId, input) as Promise<ArmyRulebook>,
+  getArmyRulebook: (id: number) =>
+    ipcRenderer.invoke('armyRules:get', id) as Promise<ArmyRulebook>,
+  listArmyRulebooksByCampaign: (campaignId: number) =>
+    ipcRenderer.invoke('armyRules:listByCampaign', campaignId) as Promise<ArmyRulebook[]>,
+  updateArmyRulebook: (id: number, input: Pick<ArmyRulebook, 'name' | 'description'>) =>
+    ipcRenderer.invoke('armyRules:update', id, input) as Promise<ArmyRulebook>,
+  shareArmyRulebookWithCampaign: (armyRuleId: number, campaignId: number) =>
+    ipcRenderer.invoke('armyRules:share', armyRuleId, campaignId) as Promise<void>,
+  removeArmyRulebookShare: (armyRuleId: number, campaignId: number) =>
+    ipcRenderer.invoke('armyRules:unshare', armyRuleId, campaignId) as Promise<void>,
+
+  // Generic Rules
+  createRule: (input: any) =>
+    ipcRenderer.invoke('rules:create', input) as Promise<Rule>,
+  getRule: (id: number) =>
+    ipcRenderer.invoke('rules:get', id) as Promise<Rule>,
+  listRulesByArmyRulebook: (armyRuleId: number) =>
+    ipcRenderer.invoke('rules:listByArmyRulebook', armyRuleId) as Promise<Rule[]>,
+  listRulesByCampaign: (campaignId: number) =>
+    ipcRenderer.invoke('rules:listByCampaign', campaignId) as Promise<Rule[]>,
+  listRulesByMission: (missionId: number) =>
+    ipcRenderer.invoke('rules:listByMission', missionId) as Promise<Rule[]>,
+  updateRule: (id: number, input: any) =>
+    ipcRenderer.invoke('rules:update', id, input) as Promise<Rule>,
+  deleteRule: (id: number) =>
+    ipcRenderer.invoke('rules:delete', id) as Promise<void>,
+
+  // Player Rules
+  assignRuleToPlayer: (playerId: number, ruleId: number) =>
+    ipcRenderer.invoke('playerRules:assign', playerId, ruleId) as Promise<PlayerRule>,
+  unassignRuleFromPlayer: (playerRuleId: number) =>
+    ipcRenderer.invoke('playerRules:unassign', playerRuleId) as Promise<void>,
+  listPlayerRules: (playerId: number) =>
+    ipcRenderer.invoke('playerRules:list', playerId) as Promise<PlayerRule[]>,
 };
 
 contextBridge.exposeInMainWorld('api', api);

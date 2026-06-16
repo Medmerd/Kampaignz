@@ -6,6 +6,30 @@ export type Campaign = {
   created_at: string;
 };
 
+export type ArmyRulebook = {
+  id: number;
+  name: string;
+  description: string;
+  original_campaign_id: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Rule = {
+  id: number;
+  army_rule_id: number | null;
+  campaign_id: number | null;
+  mission_id: number | null;
+  rule_category: string;
+  name: string;
+  description: string;
+  metadata: string | null;
+  parent_rule_id: number | null;
+  children?: Rule[];
+  created_at: string;
+  updated_at: string;
+};
+
 export type NotificationType = 'success' | 'info' | 'warning' | 'error';
 export type NotifyFunction = (type: NotificationType, title: string, description?: string) => void;
 
@@ -50,15 +74,25 @@ export type Player = {
   id: number;
   campaign_id: number;
   playerName: string;
-  army: string;
+  army_rule_id: number | null;
+  army_rule_name?: string;
   notes: string;
   config: string;
   created_at: string;
+  playerRules?: PlayerRule[];
+};
+
+export type PlayerRule = {
+    id: number;
+    player_id: number;
+    rule_id: number;
+    created_at: string;
+    rule?: Rule;
 };
 
 export type PlayerInput = {
   playerName: string;
-  army: string;
+  army_rule_id: number | null;
   notes: string;
   config: string;
 };

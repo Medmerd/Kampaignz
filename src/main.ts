@@ -7,6 +7,9 @@ import { registerMessageIpc } from './main/ipc/message-ipc';
 import { registerPlayerIpc } from './main/ipc/player-ipc';
 import { registerMissionIpc } from './main/ipc/mission-ipc';
 import { registerSessionIpc } from './main/ipc/session-ipc';
+import { registerArmyRulesIpc } from './main/ipc/army-rules-ipc';
+import { registerRulesIpc } from './main/ipc/rules-ipc';
+import { registerPlayerRulesIpc } from './main/ipc/player-rules-ipc';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -46,6 +49,9 @@ app.on('ready', async () => {
   registerMessageIpc();
   registerMissionIpc();
   registerSessionIpc();
+  registerArmyRulesIpc();
+  registerRulesIpc();
+  registerPlayerRulesIpc();
   createWindow();
 });
 

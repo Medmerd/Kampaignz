@@ -14,9 +14,12 @@
     "rebuild": "electron-rebuild -f -w better-sqlite3",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "dev": "VITE_DB_CLIENT=devpostgresql vite --config vite.renderer.config.ts",
-    "start:web": "tsx src/main/web-server.ts",
-    "dev:web": "tsx watch src/main/web-server.ts"
+    "dev:fe": "vite --config vite.renderer.config.ts",
+    "start:web:psql": "VITE_DB_CLIENT=devpostgresql tsx src/main/web-server.ts",
+    "start:web:sqlite": "VITE_DB_CLIENT=development tsx src/main/web-server.ts",
+    "start:xml": "tsx apps/xml-parse/index.ts",
+    "dev:web:psql": "VITE_DB_CLIENT=devpostgresql tsx watch src/main/web-server.ts",
+    "dev:web:sqlite": "VITE_DB_CLIENT=development tsx watch src/main/web-server.ts"
   },
   "keywords": [],
   "author": "Edward Lawrence",
@@ -59,6 +62,7 @@
     "dotenv": "^17.4.2",
     "electron-squirrel-startup": "^1.0.1",
     "express": "^5.2.1",
+    "fast-xml-parser": "^5.8.0",
     "knex": "^3.2.10",
     "konva": "^10.3.0",
     "pg": "^8.20.0",
@@ -66,6 +70,7 @@
     "react-dom": "^19.2.5",
     "react-hook-form": "^7.75.0",
     "react-konva": "^19.2.4",
+    "react-markdown": "^10.1.0",
     "uuid": "^14.0.0"
   }
 }

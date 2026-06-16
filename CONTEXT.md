@@ -15,10 +15,11 @@ A participant in a Campaign.
 - **Attributes**: Player Name, Army (faction/details), custom notes, config.
 
 ### Army Rules (Abstract Rulebook)
-A collection of rules (Detachments, Enhancements, Stratagems, Crusade Rules, etc.) representing a tabletop faction's capabilities. It can be shared across campaigns and assigned to players as their source of truth for faction mechanics.
+A collection of rules (Detachments, Enhancements, Stratagems, Crusade Rules, etc.) representing a tabletop faction's capabilities. It can be shared across campaigns and assigned to players as their source of truth for faction mechanics. 
+**Important Schema Distinction:** Tables mapping this abstract catalogue data must be prefixed with `rulebook_` (e.g., `rulebook_unit`, `rulebook_model`, `rulebook_profile`) to indicate they represent the *possibility* of an entity, rather than an instantiated entity.
 
 ### Army
-A specific player's curated roster of units, models, and wargear that they bring to the table. Reserved strictly for lists, not abstract rulesets.
+A specific player's curated roster of units, models, and wargear that they bring to the table. Reserved strictly for lists, not abstract rulesets. Tables representing a player's actual choices should be prefixed with `army_` or `roster_` to distinguish them from the abstract `rulebook_` definitions.
 
 ### Session
 A chronological RPG game session run by the Game Master (e.g., "Session 1", "Session 2"). A Session acts as a broad container that can track any number of activities occurring during game night:

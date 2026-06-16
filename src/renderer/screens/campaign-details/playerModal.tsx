@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useForm, SubmitHandler } from "react-hook-form";
-import { Modal, Space, Button } from 'antd';
+import { useForm, SubmitHandler, Controller } from "react-hook-form";
+import { Modal, Space, Button, Select } from 'antd';
 import { api } from '../../api';
 import type { Player, PlayerInput, PlayerModalOptions } from '../../types';
 
@@ -8,10 +8,12 @@ const PlayerModal = (options: PlayerModalOptions) => {
     const { campaignId, playerId, isOpen, onClose, notify } = options;
     const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
 
-    const { register, reset, handleSubmit } = useForm<PlayerInput>({
+    const [armyRules, setArmyRules] = useState<{value: number, label: string}[]>([]);
+
+    const { register, control, reset, handleSubmit } = useForm<PlayerInput>({
         defaultValues: {
             playerName: '',
-            army: '',
+            army_rule_id: null,
             notes: '',
             config: '{}',
         }
@@ -21,6 +23,9 @@ const PlayerModal = (options: PlayerModalOptions) => {
         if (!isOpen) return;
 
         try {
+            const rulebooks = await api.listArmyRulebooksByCampaign(campaignId);
+            setArmyRules(rulebooks.map(rb => ({ value: rb.id, label: rb.name })));
+
             if (playerId) {
                 // We fetch all players and find the specific one. 
                 // Alternatively, we could add `getPlayer` to API, but this is fast enough.
@@ -30,7 +35,7 @@ const PlayerModal = (options: PlayerModalOptions) => {
                     setSelectedPlayer(player);
                     reset({
                         playerName: player.playerName,
-                        army: player.army,
+                        army_rule_id: player.army_rule_id,
                         notes: player.notes || '',
                         config: player.config ? JSON.stringify(player.config, null, 2) : '{}',
                     });
@@ -39,7 +44,7 @@ const PlayerModal = (options: PlayerModalOptions) => {
                 setSelectedPlayer(null);
                 reset({
                     playerName: '',
-                    army: '',
+                    army_rule_id: null,
                     notes: '',
                     config: '{}',
                 });
@@ -103,7 +108,20 @@ const PlayerModal = (options: PlayerModalOptions) => {
                 <input id="player-name" type="text" required {...register('playerName')} />
 
                 <label htmlFor="player-army">Army</label>
-                <input id="player-army" type="text" required {...register('army')} />
+                <Controller
+                    name="army_rule_id"
+                    control={control}
+                    rules={{ required: true }}
+                    render={({ field }) => (
+                        <Select 
+                            {...field} 
+                            id="player-army" 
+                            options={armyRules} 
+                            style={{ width: '100%' }}
+                            placeholder="Select an Army"
+                        />
+                    )}
+                />
 
                 <label htmlFor="player-notes">Notes</label>
                 <textarea id="player-notes" rows={4} {...register('notes')}></textarea>

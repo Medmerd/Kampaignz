@@ -32,7 +32,7 @@ Kampaignz is not just a tool; it's an experience.
 - **Functional Components**: Use React functional components with hooks.
 - **IPC Pattern**: Always use the established IPC pattern for backend calls. Do not bypass the bridge.
 - **Database Access**: Perform database operations in the Main process via services and repositories.
-- **Type Safety**: Maintain strict TypeScript typing across the bridge and within components.
+- **Type Safety**: Maintain strict TypeScript typing across the bridge and within components. Utilize TypeScript utility types like `Pick` and `Omit` instead of manually defining duplicate redundant `*Input` types (e.g., use `Pick<MyType, 'name'>` rather than defining a separate `MyInput` type).
 
 ### 3. Testing & Validation
 - **Vitest**: Write tests for critical logic, especially for database operations and complex UI interactions.

@@ -12,10 +12,11 @@ import {
   type PlayerInput,
 } from '../../src/main/repositories/player-repo';
 import { createCampaign } from '../../src/main/repositories/campaign-repo';
+import { createArmyRulebook } from '../../src/main/repositories/army-rules-repo';
 
 const baseInput: PlayerInput = {
   playerName: 'Alice',
-  army: 'Lions',
+  army_rule_id: null,
   notes: 'Ready',
   config: '{"points":1000}',
 };
@@ -44,34 +45,37 @@ describe('player-repo', () => {
   });
 
   it('creates a player and returns row', async () => {
-    const player = await createPlayer(campaignId, baseInput);
+    const armyBook = await createArmyRulebook(campaignId, { name: 'Lions', description: '' });
+    const player = await createPlayer(campaignId, { ...baseInput, army_rule_id: armyBook.id });
     expect(player.playerName).toBe('Alice');
-    expect(player.army).toBe('Lions');
+    expect(player.army_rule_id).toBe(armyBook.id);
+    expect(player.army_rule_name).toBe('Lions');
     expect(player.config).toBe('{"points":1000}');
     expect(player.id).toBeDefined();
   });
 
   it('updates a player and returns row', async () => {
-    const player = await createPlayer(campaignId, baseInput);
+    const armyBook1 = await createArmyRulebook(campaignId, { name: 'Lions', description: '' });
+    const armyBook2 = await createArmyRulebook(campaignId, { name: 'Wolves', description: '' });
+    
+    const player = await createPlayer(campaignId, { ...baseInput, army_rule_id: armyBook1.id });
     
     const updated = await updatePlayer(player.id, {
         playerName: 'Bob',
-        army: 'Wolves',
+        army_rule_id: armyBook2.id,
         notes: 'Updated',
         config: '{"points":1500}',
     });
 
     expect(updated.playerName).toBe('Bob');
-    expect(updated.army).toBe('Wolves');
+    expect(updated.army_rule_id).toBe(armyBook2.id);
+    expect(updated.army_rule_name).toBe('Wolves');
     expect(updated.config).toBe('{"points":1500}');
   });
 
   it('validates player input', async () => {
     await expect(createPlayer(campaignId, { ...baseInput, playerName: '   ' })).rejects.toThrow(
       'Player name is required.',
-    );
-    await expect(createPlayer(campaignId, { ...baseInput, army: '   ' })).rejects.toThrow(
-      'Army is required.',
     );
   });
 });

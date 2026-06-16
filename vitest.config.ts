@@ -3,13 +3,13 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.ts', 'apps/xml-parse/**/*.test.ts'],
     clearMocks: true,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
       reportsDirectory: './coverage',
-      include: ['src/main/repositories/**/*.ts', 'src/main/ipc/**/*.ts'],
+      include: ['src/main/repositories/**/*.ts', 'src/main/ipc/**/*.ts', 'apps/xml-parse/**/*.ts'],
     },
   },
 });

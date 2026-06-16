@@ -7,6 +7,8 @@ import PlayerTab from './playerTab';
 import MessagesTab from './messageTab';
 import MissionsTab from './missionsTab';
 import SessionsTab from './sessionsTab';
+import ArmyRulesTab from './armyRulesTab';
+import CampaignRulesTab from './CampaignRulesTab';
 import CampaignSidebar from './CampaignSidebar';
 import type { Campaign, NotificationType } from '../../types';
 
@@ -18,8 +20,8 @@ type Options = {
     onSelectCampaign: (id: number) => void;
 };
 
-type TabName = 'campaign' | 'players' | 'messages' | 'missions' | 'sessions';
-const TABS: TabName[] = ['campaign', 'players', 'messages', 'missions', 'sessions'];
+type TabName = 'campaign' | 'players' | 'messages' | 'missions' | 'sessions' | 'army_rules' | 'campaign_rules';
+const TABS: TabName[] = ['campaign', 'players', 'messages', 'missions', 'sessions', 'army_rules', 'campaign_rules'];
 
 function Dashboard({
     selectedCampaignId,
@@ -65,7 +67,8 @@ function Dashboard({
 
     const tabItems = useMemo(() => {
         const tabs: TabsProps['items'] = TABS.map((tab) => {
-            return { key: tab, label: tab.charAt(0).toUpperCase() + tab.slice(1) };
+            const label = tab === 'army_rules' ? 'Army Rules' : tab === 'campaign_rules' ? 'Campaign Rules' : tab.charAt(0).toUpperCase() + tab.slice(1);
+            return { key: tab, label };
         });
         return tabs;
     }, []);
@@ -198,6 +201,14 @@ function Dashboard({
 
                         <div style={{ display: activeTab === 'sessions' ? 'block' : 'none' }}>
                             <SessionsTab campaignId={selectedCampaignId} notify={notify} />
+                        </div>
+
+                        <div style={{ display: activeTab === 'army_rules' ? 'block' : 'none' }}>
+                            <ArmyRulesTab campaignId={selectedCampaignId} notify={notify} />
+                        </div>
+
+                        <div style={{ display: activeTab === 'campaign_rules' ? 'block' : 'none' }}>
+                            <CampaignRulesTab campaignId={selectedCampaignId} notify={notify} />
                         </div>
                     </Card>
                 )}

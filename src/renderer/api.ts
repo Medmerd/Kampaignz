@@ -10,6 +10,9 @@ import type {
   MissionMatch,
   Session,
   SessionInput,
+  ArmyRulebook,
+  Rule,
+  PlayerRule,
 } from './types';
 
 // Safely determine if running inside Electron or a standard Web browser
@@ -78,4 +81,42 @@ export const api = {
     isElectron ? (window as any).api.createSession(campaignId, input) : rpcClient('sessions:create', campaignId, input),
   updateSession: (sessionId: number, input: SessionInput) =>
     isElectron ? (window as any).api.updateSession(sessionId, input) : rpcClient('sessions:update', sessionId, input),
+
+  // Army Rules
+  createArmyRulebook: (campaignId: number, input: Pick<ArmyRulebook, 'name' | 'description'>) =>
+    isElectron ? (window as any).api.createArmyRulebook(campaignId, input) : rpcClient('armyRules:create', campaignId, input),
+  getArmyRulebook: (id: number) =>
+    isElectron ? (window as any).api.getArmyRulebook(id) : rpcClient('armyRules:get', id),
+  listArmyRulebooksByCampaign: (campaignId: number) =>
+    isElectron ? (window as any).api.listArmyRulebooksByCampaign(campaignId) : rpcClient('armyRules:listByCampaign', campaignId),
+  updateArmyRulebook: (id: number, input: Pick<ArmyRulebook, 'name' | 'description'>) =>
+    isElectron ? (window as any).api.updateArmyRulebook(id, input) : rpcClient('armyRules:update', id, input),
+  shareArmyRulebookWithCampaign: (armyRuleId: number, campaignId: number) =>
+    isElectron ? (window as any).api.shareArmyRulebookWithCampaign(armyRuleId, campaignId) : rpcClient('armyRules:share', armyRuleId, campaignId),
+  removeArmyRulebookShare: (armyRuleId: number, campaignId: number) =>
+    isElectron ? (window as any).api.removeArmyRulebookShare(armyRuleId, campaignId) : rpcClient('armyRules:unshare', armyRuleId, campaignId),
+
+  // Generic Rules
+  createRule: (input: any) =>
+    isElectron ? (window as any).api.createRule(input) : rpcClient('rules:create', input),
+  getRule: (id: number) =>
+    isElectron ? (window as any).api.getRule(id) : rpcClient('rules:get', id),
+  listRulesByArmyRulebook: (armyRuleId: number) =>
+    isElectron ? (window as any).api.listRulesByArmyRulebook(armyRuleId) : rpcClient('rules:listByArmyRulebook', armyRuleId),
+  listRulesByCampaign: (campaignId: number) =>
+    isElectron ? (window as any).api.listRulesByCampaign(campaignId) : rpcClient('rules:listByCampaign', campaignId),
+  listRulesByMission: (missionId: number) =>
+    isElectron ? (window as any).api.listRulesByMission(missionId) : rpcClient('rules:listByMission', missionId),
+  updateRule: (id: number, input: any) =>
+    isElectron ? (window as any).api.updateRule(id, input) : rpcClient('rules:update', id, input),
+  deleteRule: (id: number) =>
+    isElectron ? (window as any).api.deleteRule(id) : rpcClient('rules:delete', id),
+
+  // Player Rules
+  assignRuleToPlayer: (playerId: number, ruleId: number) =>
+    isElectron ? (window as any).api.assignRuleToPlayer(playerId, ruleId) : rpcClient('playerRules:assign', playerId, ruleId),
+  unassignRuleFromPlayer: (playerRuleId: number) =>
+    isElectron ? (window as any).api.unassignRuleFromPlayer(playerRuleId) : rpcClient('playerRules:unassign', playerRuleId),
+  listPlayerRules: (playerId: number) =>
+    isElectron ? (window as any).api.listPlayerRules(playerId) : rpcClient('playerRules:list', playerId),
 };

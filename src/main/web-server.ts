@@ -1,6 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import { initializeDatabase } from './database';
+import { setupMissionIPC } from './ipc/mission-ipc';
+import { setupArmyRulesIPC } from './ipc/army-rules-ipc';
+import { setupRulesIPC } from './ipc/rules-ipc';
+import { setupPlayerRulesIPC } from './ipc/player-rules-ipc';
 
 // Import repositories and services
 import {
@@ -44,6 +48,32 @@ import {
   listSessionsByCampaign,
 } from './repositories/session-repo';
 
+// Army Rules
+import {
+  createArmyRulebook,
+  getArmyRulebookById,
+  listArmyRulebooksByCampaign,
+  updateArmyRulebook,
+  shareArmyRulebookWithCampaign,
+  removeArmyRulebookShare,
+} from './repositories/army-rules-repo';
+
+// Generic Rules
+import {
+  createRule,
+  getRuleById,
+  listRulesByArmyRulebook,
+  listRulesByCampaign,
+  listRulesByMission,
+  updateRule,
+  deleteRule,
+} from './repositories/rules-repo';
+import {
+  assignRuleToPlayer,
+  unassignRuleFromPlayer,
+  listPlayerRules,
+} from './repositories/player-rules-repo';
+
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -76,6 +106,28 @@ const RPC_DISPATCH_MAP: Record<string, (...args: any[]) => Promise<any>> = {
   'sessions:listByCampaign': (campaignId: number) => listSessionsByCampaign(campaignId),
   'sessions:create': (campaignId: number, input: any) => createSession(campaignId, input),
   'sessions:update': (sessionId: number, input: any) => updateSession(sessionId, input),
+  
+  // Army Rules
+  'armyRules:create': (campaignId: number, input: any) => createArmyRulebook(campaignId, input),
+  'armyRules:get': (id: number) => getArmyRulebookById(id),
+  'armyRules:listByCampaign': (campaignId: number) => listArmyRulebooksByCampaign(campaignId),
+  'armyRules:update': (id: number, input: any) => updateArmyRulebook(id, input),
+  'armyRules:share': (armyRuleId: number, campaignId: number) => shareArmyRulebookWithCampaign(armyRuleId, campaignId),
+  'armyRules:unshare': (armyRuleId: number, campaignId: number) => removeArmyRulebookShare(armyRuleId, campaignId),
+  
+  // Generic Rules
+  'rules:create': (input: any) => createRule(input),
+  'rules:get': (id: number) => getRuleById(id),
+  'rules:listByArmyRulebook': (armyRuleId: number) => listRulesByArmyRulebook(armyRuleId),
+  'rules:listByCampaign': (campaignId: number) => listRulesByCampaign(campaignId),
+  'rules:listByMission': (missionId: number) => listRulesByMission(missionId),
+  'rules:update': (id: number, input: any) => updateRule(id, input),
+  'rules:delete': (id: number) => deleteRule(id),
+
+  // Player Rules
+  'playerRules:assign': (playerId: number, ruleId: number) => assignRuleToPlayer(playerId, ruleId),
+  'playerRules:unassign': (playerRuleId: number) => unassignRuleFromPlayer(playerRuleId),
+  'playerRules:list': (playerId: number) => listPlayerRules(playerId),
 };
 
 app.get('/', (req, res) => {

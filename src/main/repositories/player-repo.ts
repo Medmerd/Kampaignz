@@ -4,7 +4,8 @@ export type Player = {
   id: number;
   campaign_id: number;
   playerName: string;
-  army: string;
+  army_rule_id: number | null;
+  army_rule_name?: string;
   notes: string;
   config: string;
   created_at: string;
@@ -12,7 +13,7 @@ export type Player = {
 
 export type PlayerInput = {
   playerName: string;
-  army: string;
+  army_rule_id: number | null;
   notes: string;
   config: string;
 };
@@ -20,21 +21,26 @@ export type PlayerInput = {
 export const listPlayersByCampaign = async (campaignId: number): Promise<Player[]> => {
   const db = getDatabase();
   return db('players')
-    .select('id', 'campaign_id', 'playerName', 'army', 'notes', 'config', 'created_at')
-    .where({ campaign_id: campaignId })
-    .orderBy('id', 'desc') as Promise<Player[]>;
+    .leftJoin('army_rules', 'players.army_rule_id', 'army_rules.id')
+    .select(
+      'players.id',
+      'players.campaign_id',
+      'players.playerName',
+      'players.army_rule_id',
+      'army_rules.name as army_rule_name',
+      'players.notes',
+      'players.config',
+      'players.created_at'
+    )
+    .where({ 'players.campaign_id': campaignId })
+    .orderBy('players.id', 'desc') as Promise<Player[]>;
 };
 
 export const createPlayer = async (campaignId: number, input: PlayerInput): Promise<Player> => {
   const playerName = input.playerName.trim();
-  const army = input.army.trim();
 
   if (!playerName) {
     throw new Error('Player name is required.');
-  }
-
-  if (!army) {
-    throw new Error('Army is required.');
   }
 
   const db = getDatabase();
@@ -43,7 +49,7 @@ export const createPlayer = async (campaignId: number, input: PlayerInput): Prom
     const insertResult = await trx('players').insert({
       campaign_id: campaignId,
       playerName,
-      army,
+      army_rule_id: input.army_rule_id,
       notes: input.notes.trim(),
       config: input.config,
     }).returning('id');
@@ -51,8 +57,18 @@ export const createPlayer = async (campaignId: number, input: PlayerInput): Prom
     const insertedId = typeof insertResult[0] === 'object' ? insertResult[0].id : insertResult[0];
 
     const row = await trx('players')
-      .select('id', 'campaign_id', 'playerName', 'army', 'notes', 'config', 'created_at')
-      .where({ id: insertedId })
+      .leftJoin('army_rules', 'players.army_rule_id', 'army_rules.id')
+      .select(
+        'players.id',
+        'players.campaign_id',
+        'players.playerName',
+        'players.army_rule_id',
+        'army_rules.name as army_rule_name',
+        'players.notes',
+        'players.config',
+        'players.created_at'
+      )
+      .where({ 'players.id': insertedId })
       .first() as Promise<Player | undefined>;
 
     if (!row) {
@@ -65,14 +81,9 @@ export const createPlayer = async (campaignId: number, input: PlayerInput): Prom
 
 export const updatePlayer = async (playerId: number, input: PlayerInput): Promise<Player> => {
   const playerName = input.playerName.trim();
-  const army = input.army.trim();
 
   if (!playerName) {
     throw new Error('Player name is required.');
-  }
-
-  if (!army) {
-    throw new Error('Army is required.');
   }
 
   const db = getDatabase();
@@ -81,7 +92,7 @@ export const updatePlayer = async (playerId: number, input: PlayerInput): Promis
     .where({ id: playerId })
     .update({
       playerName,
-      army,
+      army_rule_id: input.army_rule_id,
       notes: input.notes.trim(),
       config: input.config,
     });
@@ -91,8 +102,18 @@ export const updatePlayer = async (playerId: number, input: PlayerInput): Promis
   }
 
   const row = await db('players')
-    .select('id', 'campaign_id', 'playerName', 'army', 'notes', 'config', 'created_at')
-    .where({ id: playerId })
+    .leftJoin('army_rules', 'players.army_rule_id', 'army_rules.id')
+    .select(
+      'players.id',
+      'players.campaign_id',
+      'players.playerName',
+      'players.army_rule_id',
+      'army_rules.name as army_rule_name',
+      'players.notes',
+      'players.config',
+      'players.created_at'
+    )
+    .where({ 'players.id': playerId })
     .first() as Promise<Player | undefined>;
 
   if (!row) {

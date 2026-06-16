@@ -1,29 +1,42 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button } from 'antd';
+import { Button, Table, Space, Popconfirm } from 'antd';
 import { api } from '../../api';
 import type { Player, TabOptions } from '../../types';
 import PlayerModal from './playerModal';
+import AssignRuleModal from './AssignRuleModal';
+import ArmyRuleCard from '../../components/ArmyRuleCard';
 
 const PlayerTab = ({ campaignId, notify }: TabOptions) => {
     const [players, setPlayers] = useState<Player[]>([]);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
 
-    const loadData = async () => {
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState<boolean>(false);
+    const [assignPlayerId, setAssignPlayerId] = useState<number | null>(null);
+    const [assignArmyRuleId, setAssignArmyRuleId] = useState<number | null>(null);
+
+    const loadData = useCallback(async () => {
         try {
             const data = await api.listPlayersByCampaign(campaignId);
-            setPlayers(data);
+            
+            // Fetch rules for all players
+            const playersWithRules = await Promise.all(data.map(async (p) => {
+                const rules = await api.listPlayerRules(p.id);
+                return { ...p, playerRules: rules };
+            }));
+
+            setPlayers(playersWithRules);
         } catch (error) {
             console.error(error);
             if (notify) {
                 notify('error', 'Failed to load players', (error as Error).message || String(error));
             }
         }
-    };
+    }, [campaignId, notify]);
 
     useEffect(() => {
         loadData();
-    }, [campaignId]);
+    }, [loadData]);
 
     const onCreatePlayer = useCallback(() => {
         setSelectedPlayerId(null);
@@ -38,7 +51,83 @@ const PlayerTab = ({ campaignId, notify }: TabOptions) => {
     const onClose = useCallback(() => {
         setIsModalOpen(false);
         loadData();
+    }, [loadData]);
+
+    const onAssignRule = useCallback((playerId: number, armyRuleId: number | null) => {
+        setAssignPlayerId(playerId);
+        setAssignArmyRuleId(armyRuleId);
+        setIsAssignModalOpen(true);
     }, []);
+
+    const onAssignClose = useCallback(() => {
+        setIsAssignModalOpen(false);
+        loadData();
+    }, [loadData]);
+
+    const onUnassignRule = useCallback(async (playerRuleId: number) => {
+        try {
+            await api.unassignRuleFromPlayer(playerRuleId);
+            if (notify) notify('success', 'Rule Unassigned', 'The rule was removed from the player.');
+            loadData();
+        } catch (error) {
+            console.error(error);
+            if (notify) notify('error', 'Unassign Failed', (error as Error).message);
+        }
+    }, [notify, loadData]);
+
+    const columns = [
+        {
+            title: 'Player Name',
+            dataIndex: 'playerName',
+            key: 'playerName',
+            render: (text: string) => <span style={{ fontWeight: 'bold' }}>{text}</span>,
+        },
+        {
+            title: 'Army Rulebook',
+            dataIndex: 'army_rule_name',
+            key: 'army_rule_name',
+            render: (text: string | undefined) => (
+                <span style={{ color: 'rgba(0, 0, 0, 0.45)' }}>{text || 'No Army Selected'}</span>
+            ),
+        },
+        {
+            title: 'Action',
+            key: 'action',
+            render: (_: any, record: Player) => (
+                <Button onClick={() => onEditPlayer(record.id)}>Edit</Button>
+            ),
+        },
+    ];
+
+    const expandedRowRender = (record: Player) => {
+        return (
+            <div style={{ padding: '0 24px 16px 24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <h3 style={{ margin: 0 }}>Assigned Rules</h3>
+                    <Button type="dashed" onClick={() => onAssignRule(record.id, record.army_rule_id)}>
+                        Assign Rule
+                    </Button>
+                </div>
+                
+                {record.playerRules && record.playerRules.length > 0 ? (
+                    <div>
+                        {record.playerRules.map((pr) => (
+                            pr.rule ? (
+                                <ArmyRuleCard 
+                                    key={pr.id} 
+                                    rule={pr.rule}
+                                    isNested={true}
+                                    onDelete={() => onUnassignRule(pr.id)}
+                                />
+                            ) : null
+                        ))}
+                    </div>
+                ) : (
+                    <p style={{ color: 'rgba(0,0,0,0.45)' }}>No rules assigned.</p>
+                )}
+            </div>
+        );
+    };
 
     return (
         <div className="split">
@@ -50,17 +139,13 @@ const PlayerTab = ({ campaignId, notify }: TabOptions) => {
                     </Button>
                 </div>
 
-                <ul className="campaign-list" style={{ listStyle: 'none', padding: 0 }}>
-                    {players.map((player) => (
-                        <li key={player.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
-                            <div>
-                                <div style={{ fontWeight: 'bold' }}>{player.playerName}</div>
-                                <div style={{ color: 'rgba(0, 0, 0, 0.45)', fontSize: '14px' }}>{player.army}</div>
-                            </div>
-                            <Button onClick={() => onEditPlayer(player.id)}>Edit</Button>
-                        </li>
-                    ))}
-                </ul>
+                <Table 
+                    columns={columns} 
+                    dataSource={players} 
+                    rowKey="id" 
+                    expandable={{ expandedRowRender }}
+                    pagination={false}
+                />
             </div>
 
             <PlayerModal
@@ -68,6 +153,15 @@ const PlayerTab = ({ campaignId, notify }: TabOptions) => {
                 campaignId={campaignId}
                 isOpen={isModalOpen}
                 onClose={onClose}
+                notify={notify}
+            />
+
+            <AssignRuleModal
+                playerId={assignPlayerId}
+                campaignId={campaignId}
+                armyRuleId={assignArmyRuleId}
+                isOpen={isAssignModalOpen}
+                onClose={onAssignClose}
                 notify={notify}
             />
         </div>
