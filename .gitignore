@@ -5,6 +5,7 @@ apps/xml-parse/data*.cat
 apps/xml-parse/data*.gst
 campaign pdfs/*
 **/*.sqlite3
+dist/*
 
 # Logs
 logs
