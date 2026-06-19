@@ -4,7 +4,6 @@ import * as dotenv from 'dotenv';
 import { BattleScribeParser } from './parser';
 import { ingestData } from './ingestor';
 import { extractRulebookUnits } from './rulebook-extractor';
-// @ts-ignore
 import knexConfig from '../../knexfile.js';
 
 dotenv.config();

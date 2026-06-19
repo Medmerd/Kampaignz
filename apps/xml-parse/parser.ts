@@ -1,12 +1,6 @@
 import { XMLParser } from 'fast-xml-parser';
 import { randomUUID } from 'crypto';
-import {
-  ParsedData,
-  GameSystem, GameCatalogue, GameCategory, GameSelection, GameProfile, GameCharacteristic,
-  GameLink, GameCostType, GameProfileType, GameCharacteristicType, GameRule, GameInfoGroup,
-  GamePublication, GameCost, GameConstraint, GameForceEntry, GameCatalogueLink, GameModifier,
-  GameCondition
-} from './types';
+import { ParsedData } from './types';
 
 const parseOptions = {
   ignoreAttributes: false,
@@ -32,9 +26,9 @@ function recordsAreIdentical(a: any, b: any): boolean {
 
 export class BattleScribeParser {
   private parser: XMLParser;
-  private data: ParsedData;
-  private currentSystemId: string = '';
-  private currentRevision: number = 0;
+  private data!: ParsedData;
+  private currentSystemId = '';
+  private currentRevision = 0;
   private currentCatalogueId: string | null = null;
   private seenIds: Map<string, any> = new Map();
 
@@ -537,10 +531,10 @@ export class BattleScribeParser {
       if (p.characteristics && p.characteristics.characteristic) {
         const chars = ensureArray(p.characteristics.characteristic);
         for (const c of chars) {
-          if (!c.group || !c.group.name || !c.group.id) continue;
+          if (!c.group || !c.group.name) continue;
 
           this.addRecord('game_characteristics', {
-            id: c.group.id,
+            id: c.group.id || randomUUID(),
             game_system_id: this.currentSystemId,
             revision: this.currentRevision,
             catalogue_id: this.currentCatalogueId,

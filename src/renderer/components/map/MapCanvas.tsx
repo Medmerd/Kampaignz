@@ -218,14 +218,14 @@ export default function MapCanvas({
                         <div 
                             key={c.label}
                             onClick={() => handleColorSelect(c.value)}
+                            title={c.label}
                             style={{ 
                                 width: 24, 
                                 height: 24, 
                                 backgroundColor: c.value, 
                                 border: activeColor === c.value ? `2px solid ${c.stroke}` : '1px solid #ccc',
                                 borderRadius: 4,
-                                cursor: 'pointer',
-                                title: c.label
+                                cursor: 'pointer'
                             }}
                         />
                     ))}

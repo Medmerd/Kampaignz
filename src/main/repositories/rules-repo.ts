@@ -15,8 +15,8 @@ export type Rule = {
   updated_at: string;
 };
 
-type CreateRuleInput = Pick<Rule, 'rule_category' | 'name' | 'description' | 'metadata' | 'army_rule_id' | 'campaign_id' | 'mission_id' | 'parent_rule_id'>;
-type UpdateRuleInput = Pick<Rule, 'rule_category' | 'name' | 'description' | 'metadata' | 'parent_rule_id'>;
+type CreateRuleInput = Partial<Pick<Rule, 'metadata' | 'army_rule_id' | 'campaign_id' | 'mission_id' | 'parent_rule_id'>> & Pick<Rule, 'rule_category' | 'name' | 'description'>;
+type UpdateRuleInput = Partial<Pick<Rule, 'metadata' | 'parent_rule_id'>> & Pick<Rule, 'rule_category' | 'name' | 'description'>;
 
 export const createRule = async (input: CreateRuleInput): Promise<Rule> => {
   const db = getDatabase();

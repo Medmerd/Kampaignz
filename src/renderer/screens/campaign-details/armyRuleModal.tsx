@@ -19,12 +19,12 @@ const ArmyRuleModal = ({ armyRuleId, campaignId, isOpen, onClose, notify }: Army
         if (isOpen) {
             if (armyRuleId) {
                 setLoading(true);
-                api.getArmyRulebook(armyRuleId).then((rulebook) => {
+                api.getArmyRulebook(armyRuleId).then((rulebook: ArmyRulebook) => {
                     form.setFieldsValue({
                         name: rulebook.name,
                         description: rulebook.description,
                     });
-                }).catch(err => {
+                }).catch((err: any) => {
                     if (notify) notify('error', 'Failed to load Army Rulebook', err.message);
                 }).finally(() => {
                     setLoading(false);

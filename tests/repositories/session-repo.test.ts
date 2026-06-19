@@ -35,11 +35,11 @@ describe('session-repo', () => {
   });
 
   it('creates and lists sessions', async () => {
-    const session1 = await createSession(campaignId, { title: 'Session 1', notes: 'Notes 1', config: '{}', missionIds: [missionId1], campaignId });
+    const session1 = await createSession(campaignId, { title: 'Session 1', notes: 'Notes 1', config: {}, missionIds: [missionId1] });
     expect(session1.title).toBe('Session 1');
     expect(session1.mission_ids).toEqual([missionId1]);
 
-    const session2 = await createSession(campaignId, { title: 'Session 2', notes: 'Notes 2', config: '{}', missionIds: [missionId1, missionId2], campaignId });
+    const session2 = await createSession(campaignId, { title: 'Session 2', notes: 'Notes 2', config: {}, missionIds: [missionId1, missionId2] });
 
     const list = await listSessionsByCampaign(campaignId);
     expect(list).toHaveLength(2);
@@ -49,9 +49,9 @@ describe('session-repo', () => {
   });
 
   it('updates a session', async () => {
-    const session = await createSession(campaignId, { title: 'Old', notes: '', config: '{}', missionIds: [], campaignId });
+    const session = await createSession(campaignId, { title: 'Old', notes: '', config: {}, missionIds: [] });
 
-    const updated = await updateSession(session.id, { title: 'New', notes: 'Updated', config: '{"x":1}', missionIds: [missionId2], campaignId });
+    const updated = await updateSession(session.id, { title: 'New', notes: 'Updated', config: {"x":1}, missionIds: [missionId2] });
     expect(updated.title).toBe('New');
     expect(updated.config).toEqual({x: 1});
     expect(updated.mission_ids).toEqual([missionId2]);

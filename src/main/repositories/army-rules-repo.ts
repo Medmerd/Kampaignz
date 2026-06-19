@@ -26,10 +26,10 @@ export const createArmyRulebook = async (campaignId: number, input: Pick<ArmyRul
 
     const insertedId = typeof insertResult[0] === 'object' ? insertResult[0].id : insertResult[0];
 
-    const created = await trx('army_rules')
+    const created = (await trx('army_rules')
       .select('*')
       .where({ id: insertedId })
-      .first() as Promise<ArmyRulebook | undefined>;
+      .first()) as ArmyRulebook | undefined;
 
     if (!created) {
       throw new Error('Failed to create Army Rulebook.');

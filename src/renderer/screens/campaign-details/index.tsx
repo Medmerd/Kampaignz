@@ -94,7 +94,7 @@ function Dashboard({
             let parsedConfig = {};
             try {
                 parsedConfig = JSON.parse(config);
-            } catch (err) {
+            } catch (err: any) {
                 notify('error', 'Invalid JSON', 'Configuration must be a valid JSON object.');
                 return;
             }

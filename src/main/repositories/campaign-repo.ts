@@ -21,10 +21,10 @@ export const createCampaign = async (name: string): Promise<Campaign> => {
     const insertResult = await trx('campaigns').insert({ name: trimmedName }).returning('id');
     const insertedId = typeof insertResult[0] === 'object' ? insertResult[0].id : insertResult[0];
 
-    const created = await trx('campaigns')
+    const created = (await trx('campaigns')
       .select('id', 'name', 'expectedSessions', 'config', 'created_at')
       .where({ id: insertedId })
-      .first() as Promise<Campaign | undefined>;
+      .first()) as Campaign | undefined;
 
     if (!created) {
       throw new Error('Failed to create campaign.');
@@ -78,10 +78,10 @@ export const updateCampaignDetails = async (id: number, input: CampaignDetailsIn
     throw new Error('Campaign not found.');
   }
 
-  const updated = await db('campaigns')
+  const updated = (await db('campaigns')
     .select('id', 'name', 'expectedSessions', 'config', 'created_at')
     .where({ id })
-    .first() as Promise<Campaign | undefined>;
+    .first()) as Campaign | undefined;
 
   if (!updated) {
     throw new Error('Failed to update campaign.');

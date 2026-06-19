@@ -1,3 +1,4 @@
+import type { TabOptions, ArmyRulebook } from '../../types';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button, Tag } from 'antd';
 import { api } from '../../api';

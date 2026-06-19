@@ -8,7 +8,7 @@ import MessageModal from './messageModal';
 const MessagesTab = ({ campaignId, notify }: TabOptions) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [selectedMessageId, setSelectedMessageId] = useState<number>(-1); 
-    const [selectedMessage, setSelectedMessage] = useState<Message>(null);
+    const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [isModalOpen, setModalOpen] = useState<boolean>(false);
    
@@ -17,7 +17,7 @@ const MessagesTab = ({ campaignId, notify }: TabOptions) => {
             const refreshMessages = await api.listMessagesByCampaign(campaignId);
             setMessages(refreshMessages);
             setLoading(false);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to load messages', err);
             if (notify) notify('error', 'Failed to load messages', (err as Error).message);
             setLoading(false);

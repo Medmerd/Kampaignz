@@ -39,7 +39,7 @@ const RuleModal = ({ ruleId, parentType, parentId, isOpen, onClose, notify, exis
         if (isOpen) {
             if (ruleId) {
                 setLoading(true);
-                api.getRule(ruleId).then((rule) => {
+                api.getRule(ruleId).then((rule: Rule) => {
                     let maxPerPlayer = null;
                     let maxCampaignWide = null;
                     let remainingMetadata = '';
@@ -49,7 +49,7 @@ const RuleModal = ({ ruleId, parentType, parentId, isOpen, onClose, notify, exis
                             // If Knex auto-parses the JSON column, rule.metadata might already be an object
                             const parsed = typeof rule.metadata === 'string' 
                                 ? JSON.parse(rule.metadata) 
-                                : { ...rule.metadata };
+                                : { ...(rule.metadata as any) };
 
                             if (parsed.max_per_player !== undefined) {
                                 maxPerPlayer = parsed.max_per_player;
@@ -78,7 +78,7 @@ const RuleModal = ({ ruleId, parentType, parentId, isOpen, onClose, notify, exis
                         metadata: remainingMetadata,
                         parent_rule_id: rule.parent_rule_id,
                     });
-                }).catch(err => {
+                }).catch((err: any) => {
                     if (notify) notify('error', 'Failed to load Rule', err.message);
                 }).finally(() => setLoading(false));
             } else {

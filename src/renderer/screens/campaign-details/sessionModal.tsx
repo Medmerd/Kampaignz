@@ -26,7 +26,7 @@ const SessionModal = (options: SessionModalOptions) => {
         try {
             const loadedMissions = await api.listMissionsByCampaign(campaignId);
             setMissions(loadedMissions);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to load missions:', err);
         }
 

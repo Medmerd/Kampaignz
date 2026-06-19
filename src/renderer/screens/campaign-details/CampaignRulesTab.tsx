@@ -38,7 +38,7 @@ const CampaignRulesTab = ({ campaignId, notify }: TabOptions) => {
         api.deleteRule(id).then(() => {
             if (notify) notify('success', 'Rule deleted');
             loadData();
-        }).catch(err => {
+        }).catch((err: any) => {
             if (notify) notify('error', 'Failed to delete', err.message);
         });
     }, [notify]);

@@ -7,15 +7,12 @@ vi.mock('../../src/main/database', () => ({
 
 import {
   createRule,
-  getRuleById,
   listRulesByArmyRulebook,
   listRulesByCampaign,
-  listRulesByMission,
   updateRule,
   deleteRule,
 } from '../../src/main/repositories/rules-repo';
 import { createCampaign } from '../../src/main/repositories/campaign-repo';
-import { createMission } from '../../src/main/repositories/mission-repo';
 import { createArmyRulebook } from '../../src/main/repositories/army-rules-repo';
 
 describe('rules-repo', () => {
@@ -39,7 +36,7 @@ describe('rules-repo', () => {
       mission_id: null,
       parent_rule_id: null,
     });
-    
+
     expect(rule.name).toBe('House Rule 1');
     expect(rule.campaign_id).toBe(campaign.id);
 
@@ -80,7 +77,7 @@ describe('rules-repo', () => {
   it('creates and deletes rule for army rulebook', async () => {
     const campaign = await createCampaign('Campaign 1');
     const army = await createArmyRulebook(campaign.id, { name: 'A', description: '' });
-    
+
     const rule = await createRule({
       rule_category: 'Stratagem',
       name: 'Strat 1',
@@ -100,7 +97,7 @@ describe('rules-repo', () => {
     list = await listRulesByArmyRulebook(army.id);
     expect(list).toHaveLength(0);
   });
-  
+
   it('updates rule details', async () => {
     const campaign = await createCampaign('Campaign 1');
     const rule = await createRule({
@@ -165,11 +162,11 @@ describe('rules-repo', () => {
     });
 
     const list = await listRulesByArmyRulebook(army.id);
-    
+
     // Should return 1 root element
     expect(list).toHaveLength(1);
     expect(list[0].id).toBe(parent.id);
-    
+
     // With 2 children
     expect(list[0].children).toBeDefined();
     expect(list[0].children).toHaveLength(2);
