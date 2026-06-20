@@ -14,7 +14,7 @@ const MissionsTab = ({ campaignId, notify }: TabOptions) => {
         try {
             const data = await api.listMissionsByCampaign(campaignId);
             setMissions(data);
-        } catch (error: any) {
+        } catch (error: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
             console.error(error);
             if (notify) {
                 notify('error', 'Failed to load missions', error.message || String(error));

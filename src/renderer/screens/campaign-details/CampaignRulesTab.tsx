@@ -14,7 +14,7 @@ const CampaignRulesTab = ({ campaignId, notify }: TabOptions) => {
         try {
             const data = await api.listRulesByCampaign(campaignId);
             setRules(data);
-        } catch (error: any) {
+        } catch (error: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
             console.error(error);
             if (notify) notify('error', 'Failed to load Campaign Rules', error.message || String(error));
         }
@@ -38,7 +38,7 @@ const CampaignRulesTab = ({ campaignId, notify }: TabOptions) => {
         api.deleteRule(id).then(() => {
             if (notify) notify('success', 'Rule deleted');
             loadData();
-        }).catch((err: any) => {
+        }).catch((err: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
             if (notify) notify('error', 'Failed to delete', err.message);
         });
     }, [notify]);

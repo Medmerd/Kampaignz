@@ -24,13 +24,13 @@ const PlayerModal = (options: PlayerModalOptions) => {
 
         try {
             const rulebooks = await api.listArmyRulebooksByCampaign(campaignId);
-            setArmyRules(rulebooks.map((rb: any) => ({ value: rb.id, label: rb.name })));
+            setArmyRules(rulebooks.map((rb: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => ({ value: rb.id, label: rb.name })));
 
             if (playerId) {
                 // We fetch all players and find the specific one. 
                 // Alternatively, we could add `getPlayer` to API, but this is fast enough.
                 const players = await api.listPlayersByCampaign(campaignId);
-                const player = players.find((p: any) => p.id === playerId);
+                const player = players.find((p: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => p.id === playerId);
                 if (player) {
                     setSelectedPlayer(player);
                     reset({

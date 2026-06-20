@@ -17,7 +17,7 @@ const ArmyRulesTab = ({ campaignId, notify }: TabOptions) => {
         try {
             const data = await api.listArmyRulebooksByCampaign(campaignId);
             setRulebooks(data);
-        } catch (error: any) {
+        } catch (error: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
             console.error(error);
             if (notify) notify('error', 'Failed to load Army Rulebooks', error.message || String(error));
         }

@@ -43,7 +43,7 @@ const XMLImportReviewModal = ({ isOpen, onClose, armyRulebookId, initialCaptures
         }
     }, [selectedCapture, form]);
 
-    const handleUpdateCapture = (values: any) => {
+    const handleUpdateCapture = (values: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
         if (!selectedCapture) return;
         const updated = captures.map(c => c.id === selectedCapture.id ? { ...c, ...values } : c);
         setCaptures(updated);
@@ -72,7 +72,7 @@ const XMLImportReviewModal = ({ isOpen, onClose, armyRulebookId, initialCaptures
             }
             if (notify) notify('success', `Imported ${rulesToImport.length} rules successfully!`);
             onClose();
-        } catch (error: any) {
+        } catch (error: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
             console.error(error);
             if (notify) notify('error', 'Import Failed', error.message);
         } finally {

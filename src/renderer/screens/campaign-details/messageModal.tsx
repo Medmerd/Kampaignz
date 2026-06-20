@@ -34,7 +34,7 @@ const MessageModal = (options: Options) => {
 
         try {
             const playerList = await api.listPlayersByCampaign(campaignId);
-            const formatted = playerList.map((player: any) => ({ label: player.playerName, value: player.id }));
+            const formatted = playerList.map((player: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => ({ label: player.playerName, value: player.id }));
             setPlayers(formatted);
             
             if (message) {

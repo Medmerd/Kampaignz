@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Table, Space, Popconfirm } from 'antd';
+import { Button, Table } from 'antd';
 import { api } from '../../api';
 import type { Player, TabOptions } from '../../types';
 import PlayerModal from './playerModal';
@@ -20,7 +20,7 @@ const PlayerTab = ({ campaignId, notify }: TabOptions) => {
             const data = await api.listPlayersByCampaign(campaignId);
             
             // Fetch rules for all players
-            const playersWithRules = await Promise.all(data.map(async (p: any) => {
+            const playersWithRules = await Promise.all(data.map(async (p: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
                 const rules = await api.listPlayerRules(p.id);
                 return { ...p, playerRules: rules };
             }));
@@ -93,7 +93,7 @@ const PlayerTab = ({ campaignId, notify }: TabOptions) => {
         {
             title: 'Action',
             key: 'action',
-            render: (_: any, record: Player) => (
+            render: (_: any /* eslint-disable-line @typescript-eslint/no-explicit-any */, record: Player) => (
                 <Button onClick={() => onEditPlayer(record.id)}>Edit</Button>
             ),
         },

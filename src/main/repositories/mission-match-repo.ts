@@ -50,8 +50,8 @@ export const listMissionMatches = async (missionId: number): Promise<MissionMatc
 
     matches.push({
       matchType: row.matchType as 1 | 2 | 4,
-      teamAPlayerIds: pairs.map((pair: any) => pair.playerAId),
-      teamBPlayerIds: pairs.map((pair: any) => pair.playerBId),
+      teamAPlayerIds: pairs.map((pair: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => pair.playerAId),
+      teamBPlayerIds: pairs.map((pair: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => pair.playerBId),
     });
   }
 
@@ -83,7 +83,7 @@ export const replaceMissionMatches = async (missionId: number, matches: MissionM
       .where({ campaign_id: mission.campaign_id })
       .whereIn('id', unique);
 
-    const found = new Set(rows.map((row: any) => row.id));
+    const found = new Set(rows.map((row: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => row.id));
 
     for (const id of unique) {
       if (!found.has(id)) {

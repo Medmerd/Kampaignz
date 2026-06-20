@@ -24,7 +24,7 @@ const ArmyRuleModal = ({ armyRuleId, campaignId, isOpen, onClose, notify }: Army
                         name: rulebook.name,
                         description: rulebook.description,
                     });
-                }).catch((err: any) => {
+                }).catch((err: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
                     if (notify) notify('error', 'Failed to load Army Rulebook', err.message);
                 }).finally(() => {
                     setLoading(false);
@@ -45,7 +45,7 @@ const ArmyRuleModal = ({ armyRuleId, campaignId, isOpen, onClose, notify }: Army
                 if (notify) notify('success', 'Army Rulebook created');
             }
             onClose();
-        } catch (error: any) {
+        } catch (error: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
             if (notify) notify('error', 'Failed to save Army Rulebook', error.message);
         }
     };

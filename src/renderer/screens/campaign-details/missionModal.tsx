@@ -51,7 +51,7 @@ const MissionModal = (options: MissionModalOptions) => {
                     api.listMissionMatches(missionId)
                 ]);
                 
-                const missionData = missionDataList.find((m: any) => m.id === missionId);
+                const missionData = missionDataList.find((m: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => m.id === missionId);
 
                 if (missionData) {
                     setSelectedMission(missionData);
@@ -64,7 +64,7 @@ const MissionModal = (options: MissionModalOptions) => {
                 }
                 if (matchData) {
                     // Normalize MatchType just in case
-                    const normalizedMatches = matchData.map((m: any) => ({
+                    const normalizedMatches = matchData.map((m: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => ({
                         ...m,
                         matchType: Number(m.matchType) as MatchType
                     }));

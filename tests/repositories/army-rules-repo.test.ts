@@ -39,7 +39,7 @@ describe('army-rules-repo', () => {
     const campaign1 = await createCampaign('C1');
     const campaign2 = await createCampaign('C2');
 
-    const rb1 = await createArmyRulebook(campaign1.id, { name: 'RB1', description: '' });
+    await createArmyRulebook(campaign1.id, { name: 'RB1', description: '' });
     const rb2 = await createArmyRulebook(campaign2.id, { name: 'RB2', description: '' });
 
     // Share RB2 with Campaign 1
@@ -58,7 +58,7 @@ describe('army-rules-repo', () => {
     const fetched = await getArmyRulebookById(rb.id);
     
     expect(fetched).toBeDefined();
-    expect(fetched!.id).toBe(rb.id);
+    expect(fetched?.id).toBe(rb.id);
   });
 
   it('updates army rulebook details and returns updated row', async () => {

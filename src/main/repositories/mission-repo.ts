@@ -24,7 +24,7 @@ export const listMissionsByCampaign = async (campaignId: number): Promise<Missio
     .where({ campaign_id: campaignId })
     .orderBy('id', 'desc');
 
-  return rows.map((row: any) => ({
+  return rows.map((row: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => ({
     id: row.id,
     campaign_id: row.campaign_id,
     title: row.title,

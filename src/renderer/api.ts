@@ -1,25 +1,18 @@
 import type {
-  Campaign,
   CampaignDetailsInput,
-  Message,
   MessageInput,
-  Player,
   PlayerInput,
-  Mission,
   MissionInput,
   MissionMatch,
-  Session,
   SessionInput,
-  ArmyRulebook,
-  Rule,
-  PlayerRule,
+  ArmyRulebook
 } from './types';
 
 // Safely determine if running inside Electron or a standard Web browser
 const isElectron = typeof window !== 'undefined' && (window as any).api !== undefined;
 
 // Fallback client for Web pod environments mirroring Electron's native IPC bridge
-const rpcClient = async (channel: string, ...args: any[]): Promise<any> => {
+const rpcClient = async (channel: string, ...args: any /* eslint-disable-line @typescript-eslint/no-explicit-any */[]): Promise<any> => {
   const response = await fetch('/api/rpc', {
     method: 'POST',
     headers: {
@@ -97,7 +90,7 @@ export const api = {
     isElectron ? (window as any).api.removeArmyRulebookShare(armyRuleId, campaignId) : rpcClient('armyRules:unshare', armyRuleId, campaignId),
 
   // Generic Rules
-  createRule: (input: any) =>
+  createRule: (input: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) =>
     isElectron ? (window as any).api.createRule(input) : rpcClient('rules:create', input),
   getRule: (id: number) =>
     isElectron ? (window as any).api.getRule(id) : rpcClient('rules:get', id),
@@ -107,7 +100,7 @@ export const api = {
     isElectron ? (window as any).api.listRulesByCampaign(campaignId) : rpcClient('rules:listByCampaign', campaignId),
   listRulesByMission: (missionId: number) =>
     isElectron ? (window as any).api.listRulesByMission(missionId) : rpcClient('rules:listByMission', missionId),
-  updateRule: (id: number, input: any) =>
+  updateRule: (id: number, input: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) =>
     isElectron ? (window as any).api.updateRule(id, input) : rpcClient('rules:update', id, input),
   deleteRule: (id: number) =>
     isElectron ? (window as any).api.deleteRule(id) : rpcClient('rules:delete', id),

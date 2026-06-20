@@ -28,7 +28,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 const ArmyRuleCard: React.FC<ArmyRuleCardProps> = ({ rule, onEdit, onDelete, isNested = false }) => {
   const color = CATEGORY_COLORS[rule.rule_category] || 'default';
   
-  let parsedMetadata: any = null;
+  let parsedMetadata: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ = null;
   if (rule.metadata) {
     try {
       parsedMetadata = JSON.parse(rule.metadata);

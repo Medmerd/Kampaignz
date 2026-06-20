@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Drawer, Button, Typography, Empty, Popconfirm } from 'antd';
+import { Drawer, Button, Typography, Empty } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { api } from '../../api';
 import type { ArmyRulebook, Rule, NotifyFunction } from '../../types';
@@ -35,7 +35,7 @@ const ArmyRulebookDetailsDrawer = ({ rulebook, isOpen, onClose, notify }: Drawer
             
             setXmlCaptures(extractedCaptures);
             setIsReviewModalOpen(true);
-        } catch (e: any) {
+        } catch (e: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
             console.error(e);
             if (notify) notify('error', 'Extraction Failed', e.message);
         }
@@ -47,7 +47,7 @@ const ArmyRulebookDetailsDrawer = ({ rulebook, isOpen, onClose, notify }: Drawer
         try {
             const data = await api.listRulesByArmyRulebook(rulebook.id);
             setRules(data);
-        } catch (error: any) {
+        } catch (error: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
             if (notify) notify('error', 'Failed to load rules', error.message);
         }
     };
@@ -72,7 +72,7 @@ const ArmyRulebookDetailsDrawer = ({ rulebook, isOpen, onClose, notify }: Drawer
         api.deleteRule(id).then(() => {
             if (notify) notify('success', 'Rule deleted');
             loadRules();
-        }).catch((err: any) => {
+        }).catch((err: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
             if (notify) notify('error', 'Failed to delete', err.message);
         });
     };

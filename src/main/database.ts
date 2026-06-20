@@ -37,6 +37,7 @@ export const initializeDatabase = async (): Promise<Knex> => {
 
     if (conn.filename === './dev.sqlite3') {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { app } = require('electron');
         conn.filename = path.join(app.getPath('userData'), 'kampaignz.db');
       } catch (err) {

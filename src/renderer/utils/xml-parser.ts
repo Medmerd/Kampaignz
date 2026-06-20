@@ -22,8 +22,8 @@ export const parseBattlescribeXML = async (file: File): Promise<XMLRuleCapture[]
   const captures: XMLRuleCapture[] = [];
 
   // Helper to recursively find all nodes with a specific key
-  const findNodes = (obj: any, keyName: string): any[] => {
-     let results: any[] = [];
+  const findNodes = (obj: any /* eslint-disable-line @typescript-eslint/no-explicit-any */, keyName: string): any /* eslint-disable-line @typescript-eslint/no-explicit-any */[] => {
+     let results: any /* eslint-disable-line @typescript-eslint/no-explicit-any */[] = [];
      if (!obj || typeof obj !== 'object') return results;
 
      for (const key of Object.keys(obj)) {
@@ -48,14 +48,14 @@ export const parseBattlescribeXML = async (file: File): Promise<XMLRuleCapture[]
      return results;
   };
 
-  const getRuleDescription = (ruleNode: any): string => {
+  const getRuleDescription = (ruleNode: any /* eslint-disable-line @typescript-eslint/no-explicit-any */): string => {
       if (!ruleNode) return '';
       if (typeof ruleNode.description === 'string') return ruleNode.description;
       if (ruleNode.description && ruleNode.description['#text']) return ruleNode.description['#text'];
       return '';
   };
 
-  const getProfileDescription = (profileNode: any): string => {
+  const getProfileDescription = (profileNode: any /* eslint-disable-line @typescript-eslint/no-explicit-any */): string => {
       const chars = findNodes(profileNode, 'characteristic');
       const descChar = chars.find(c => c['@_name'] === 'Description' || c['@_name'] === 'Effect' || c['@_name'] === 'Rules');
       if (!descChar) return '';

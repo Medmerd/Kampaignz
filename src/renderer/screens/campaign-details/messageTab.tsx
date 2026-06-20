@@ -17,7 +17,7 @@ const MessagesTab = ({ campaignId, notify }: TabOptions) => {
             const refreshMessages = await api.listMessagesByCampaign(campaignId);
             setMessages(refreshMessages);
             setLoading(false);
-        } catch (err: any) {
+        } catch (err: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
             console.error('Failed to load messages', err);
             if (notify) notify('error', 'Failed to load messages', (err as Error).message);
             setLoading(false);

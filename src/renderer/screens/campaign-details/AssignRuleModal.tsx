@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useForm, Controller } from "react-hook-form";
 import { Modal, Space, Button, Select } from 'antd';
 import { api } from '../../api';
-import type { Rule } from '../../types';
 
 export type AssignRuleModalOptions = {
     playerId: number | null;

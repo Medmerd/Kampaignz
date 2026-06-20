@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { json } from 'express';
 import cors from 'cors';
 import { initializeDatabase } from './database';
 
@@ -74,50 +74,50 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(json());
 
 // RPC Gateway Dispatcher
-const RPC_DISPATCH_MAP: Record<string, (...args: any[]) => Promise<any>> = {
+const RPC_DISPATCH_MAP: Record<string, (...args: any /* eslint-disable-line @typescript-eslint/no-explicit-any */[]) => Promise<any>> = {
   'campaigns:create': (name: string) => createCampaign(name),
   'campaigns:list': () => listCampaigns(),
   'campaigns:get': (id: number) => getCampaignById(id),
-  'campaigns:updateDetails': (id: number, input: any) => updateCampaignDetails(id, input),
+  'campaigns:updateDetails': (id: number, input: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => updateCampaignDetails(id, input),
   'players:listByCampaign': (campaignId: number) => listPlayersByCampaign(campaignId),
-  'players:create': (campaignId: number, input: any) => createPlayer(campaignId, input),
-  'players:update': (playerId: number, input: any) => updatePlayer(playerId, input),
+  'players:create': (campaignId: number, input: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => createPlayer(campaignId, input),
+  'players:update': (playerId: number, input: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => updatePlayer(playerId, input),
   'messages:listByCampaign': (campaignId: number) => listMessagesByCampaign(campaignId),
-  'messages:create': (campaignId: number, input: any) => createMessage(campaignId, input),
-  'messages:update': (messageId: number, input: any) => updateMessage(messageId, input),
-  'messages:generateFromConfig': (config: any) => generateMessageFromConfig(config),
+  'messages:create': (campaignId: number, input: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => createMessage(campaignId, input),
+  'messages:update': (messageId: number, input: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => updateMessage(messageId, input),
+  'messages:generateFromConfig': (config: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => generateMessageFromConfig(config),
   'messages:sendToDiscord': (content: string) => sendMessageToDiscord(content),
   
   // Wargaming Missions
   'missions:listByCampaign': (campaignId: number) => listMissionsByCampaign(campaignId),
-  'missions:create': (campaignId: number, input: any) => createMission(campaignId, input),
-  'missions:update': (missionId: number, input: any) => updateMission(missionId, input),
+  'missions:create': (campaignId: number, input: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => createMission(campaignId, input),
+  'missions:update': (missionId: number, input: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => updateMission(missionId, input),
   'missions:listMatches': (missionId: number) => listMissionMatches(missionId),
-  'missions:replaceMatches': (missionId: number, matches: any[]) => replaceMissionMatches(missionId, matches),
+  'missions:replaceMatches': (missionId: number, matches: any /* eslint-disable-line @typescript-eslint/no-explicit-any */[]) => replaceMissionMatches(missionId, matches),
   
   // Chronological RPG Sessions
   'sessions:listByCampaign': (campaignId: number) => listSessionsByCampaign(campaignId),
-  'sessions:create': (campaignId: number, input: any) => createSession(campaignId, input),
-  'sessions:update': (sessionId: number, input: any) => updateSession(sessionId, input),
+  'sessions:create': (campaignId: number, input: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => createSession(campaignId, input),
+  'sessions:update': (sessionId: number, input: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => updateSession(sessionId, input),
   
   // Army Rules
-  'armyRules:create': (campaignId: number, input: any) => createArmyRulebook(campaignId, input),
+  'armyRules:create': (campaignId: number, input: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => createArmyRulebook(campaignId, input),
   'armyRules:get': (id: number) => getArmyRulebookById(id),
   'armyRules:listByCampaign': (campaignId: number) => listArmyRulebooksByCampaign(campaignId),
-  'armyRules:update': (id: number, input: any) => updateArmyRulebook(id, input),
+  'armyRules:update': (id: number, input: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => updateArmyRulebook(id, input),
   'armyRules:share': (armyRuleId: number, campaignId: number) => shareArmyRulebookWithCampaign(armyRuleId, campaignId),
   'armyRules:unshare': (armyRuleId: number, campaignId: number) => removeArmyRulebookShare(armyRuleId, campaignId),
   
   // Generic Rules
-  'rules:create': (input: any) => createRule(input),
+  'rules:create': (input: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => createRule(input),
   'rules:get': (id: number) => getRuleById(id),
   'rules:listByArmyRulebook': (armyRuleId: number) => listRulesByArmyRulebook(armyRuleId),
   'rules:listByCampaign': (campaignId: number) => listRulesByCampaign(campaignId),
   'rules:listByMission': (missionId: number) => listRulesByMission(missionId),
-  'rules:update': (id: number, input: any) => updateRule(id, input),
+  'rules:update': (id: number, input: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => updateRule(id, input),
   'rules:delete': (id: number) => deleteRule(id),
 
   // Player Rules
@@ -224,7 +224,7 @@ app.post('/api/rpc', async (req, res) => {
   try {
     const result = await handler(...(args || []));
     res.json(result);
-  } catch (error: any) {
+  } catch (error: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
     console.error(`[RPC Execution Error] Channel '${channel}':`, error);
     res.status(500).json({ message: error.message || String(error) });
   }

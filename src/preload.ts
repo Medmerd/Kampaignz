@@ -132,7 +132,7 @@ const api = {
     ipcRenderer.invoke('armyRules:unshare', armyRuleId, campaignId) as Promise<void>,
 
   // Generic Rules
-  createRule: (input: any) =>
+  createRule: (input: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) =>
     ipcRenderer.invoke('rules:create', input) as Promise<Rule>,
   getRule: (id: number) =>
     ipcRenderer.invoke('rules:get', id) as Promise<Rule>,
@@ -142,7 +142,7 @@ const api = {
     ipcRenderer.invoke('rules:listByCampaign', campaignId) as Promise<Rule[]>,
   listRulesByMission: (missionId: number) =>
     ipcRenderer.invoke('rules:listByMission', missionId) as Promise<Rule[]>,
-  updateRule: (id: number, input: any) =>
+  updateRule: (id: number, input: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) =>
     ipcRenderer.invoke('rules:update', id, input) as Promise<Rule>,
   deleteRule: (id: number) =>
     ipcRenderer.invoke('rules:delete', id) as Promise<void>,

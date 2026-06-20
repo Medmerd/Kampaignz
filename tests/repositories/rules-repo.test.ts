@@ -170,7 +170,7 @@ describe('rules-repo', () => {
     // With 2 children
     expect(list[0].children).toBeDefined();
     expect(list[0].children).toHaveLength(2);
-    expect(list[0].children![0].id).toBe(child1.id);
-    expect(list[0].children![1].id).toBe(child2.id);
+    expect(list[0].children?.[0].id).toBe(child1.id);
+    expect(list[0].children?.[1].id).toBe(child2.id);
   });
 });

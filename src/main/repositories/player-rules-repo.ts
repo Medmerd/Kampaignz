@@ -20,7 +20,7 @@ export const assignRuleToPlayer = async (playerId: number, ruleId: number): Prom
         throw new Error('Only campaign rules can be assigned to players. Army rules are not permitted.');
     }
 
-    let metadata: any = {};
+    let metadata: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ = {};
     if (rule.metadata) {
         try {
             metadata = typeof rule.metadata === 'string' 

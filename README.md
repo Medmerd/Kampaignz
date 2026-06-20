@@ -1,6 +1,6 @@
 # Kampaignz Tabletop Campaign Manager
 
-Kampaignz is a premium Tabletop Campaign Builder and Manager designed to assist Game Masters (GMs) and Dungeon Masters (DMs) in planning, tracking, and chronicling campaigns with style.
+Kampaignz is a prototype Tabletop Campaign Builder and Manager designed to assist Game Masters (GMs) and Dungeon Masters (DMs) in planning, tracking, and chronicling campaigns with style.
 
 ---
 
@@ -60,7 +60,7 @@ source ~/.nvm/nvm.sh
 
 ## 🚀 Running the Application
 
-### 1. Desktop Mode (Electron)
+### 1. Desktop Mode (Electron - deprecated)
 Launch Kampaignz as a local Electron desktop application:
 ```bash
 npm run start:fe

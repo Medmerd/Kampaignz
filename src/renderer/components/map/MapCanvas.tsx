@@ -2,7 +2,7 @@ import React, { useState, useReducer, useEffect, useRef } from 'react';
 import { Stage, Layer, Line, Circle } from 'react-konva';
 import GridLayer from './GridLayer';
 import ShapeLayer from './ShapeLayer';
-import { mapReducer, initialMapState, MapShape, MapArrow } from '../../state/map-reducer';
+import { mapReducer, initialMapState, MapShape } from '../../state/map-reducer';
 import { calculatePositioningArrows } from '../../utils/map-arrows';
 import { v4 as uuidv4 } from 'uuid';
 import { mmToPixels, PIXELS_PER_INCH } from '../../utils/map-math';
@@ -75,7 +75,7 @@ export default function MapCanvas({
     );
 
     // Handle tool interactions (clicking the canvas to place a shape)
-    const handleStageClick = (e: any) => {
+    const handleStageClick = (e: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
         if (readonly) return;
         const stage = e.target.getStage();
         const pointerPosition = stage.getPointerPosition();
@@ -303,7 +303,7 @@ export default function MapCanvas({
                         isLocked={readonly || state.isLocked}
                         onUpdateShape={(payload) => dispatch({ type: 'UPDATE_SHAPE', payload })}
                         selectedShapeId={readonly ? null : selectedShapeId}
-                        onSelectShape={readonly ? () => {} : setSelectedShapeId}
+                        onSelectShape={readonly ? () => { /* do nothing */ } : setSelectedShapeId}
                     />
                     {/* Render draft polygon while drawing */}
                     {draftPolygonPoints.length > 0 && (

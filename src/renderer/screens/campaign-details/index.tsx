@@ -54,7 +54,7 @@ function Dashboard({
                     ? fetchedCampaign.config
                     : JSON.stringify(fetchedCampaign.config ?? {}, null, 2)
             );
-        } catch (error: any) {
+        } catch (error: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
             console.error('Failed to load campaign:', error);
         } finally {
             setLoading(false);
@@ -94,7 +94,7 @@ function Dashboard({
             let parsedConfig = {};
             try {
                 parsedConfig = JSON.parse(config);
-            } catch (err: any) {
+            } catch (err: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
                 notify('error', 'Invalid JSON', 'Configuration must be a valid JSON object.');
                 return;
             }
@@ -107,7 +107,7 @@ function Dashboard({
             
             setCampaign(updated);
             notify('success', 'Campaign Updated', 'The campaign details were updated successfully.');
-        } catch (error: any) {
+        } catch (error: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
             console.error('Failed to update campaign:', error);
             notify('error', 'Failed to update campaign', error.message || String(error));
         }

@@ -22,7 +22,7 @@ export default function ShapeLayer({
     onSelectShape
 }: ShapeLayerProps) {
     const trRef = useRef<any>(null);
-    const shapeRefs = useRef<{ [key: string]: any }>({});
+    const shapeRefs = useRef<{ [key: string]: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ }>({});
 
     useEffect(() => {
         if (selectedShapeId && !isLocked) {
@@ -38,7 +38,7 @@ export default function ShapeLayer({
         }
     }, [selectedShapeId, isLocked]);
 
-    const handleDragEnd = (e: any, shape: MapShape) => {
+    const handleDragEnd = (e: any /* eslint-disable-line @typescript-eslint/no-explicit-any */, shape: MapShape) => {
         if (isLocked) return;
         
         let newX = e.target.x();
@@ -87,7 +87,7 @@ export default function ShapeLayer({
                     draggable: !isLocked,
                     onClick: () => onSelectShape(shape.id),
                     onTap: () => onSelectShape(shape.id),
-                    onDragEnd: (e: any) => handleDragEnd(e, shape),
+                    onDragEnd: (e: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => handleDragEnd(e, shape),
                     stroke: isSelected && shape.type !== 'rectangle' ? '#1677ff' : '#424242',
                     strokeWidth: isSelected && shape.type !== 'rectangle' ? 3 : 1,
                     fill: shape.fill || 'rgba(255, 255, 255, 0.1)',
@@ -103,7 +103,7 @@ export default function ShapeLayer({
                             height={shape.height || 50}
                             stroke={isSelected ? '#1677ff' : '#424242'}
                             strokeWidth={isSelected ? 3 : 1}
-                            onTransformEnd={(e) => {
+                            onTransformEnd={() => {
                                 const node = shapeRefs.current[shape.id];
                                 const scaleX = node.scaleX();
                                 const scaleY = node.scaleY();
@@ -143,7 +143,7 @@ export default function ShapeLayer({
                             ref={(node) => { shapeRefs.current[shape.id] = node; }}
                             name="circle"
                             radius={shape.radius || 20}
-                            onTransformEnd={(e) => {
+                            onTransformEnd={() => {
                                 const node = shapeRefs.current[shape.id];
                                 const scaleX = node.scaleX();
                                 const scaleY = node.scaleY();
@@ -170,14 +170,14 @@ export default function ShapeLayer({
                             name="polygon"
                             points={shape.points}
                             closed
-                            onTransformEnd={(e) => {
+                            onTransformEnd={() => {
                                 const node = shapeRefs.current[shape.id];
                                 const scaleX = node.scaleX();
                                 const scaleY = node.scaleY();
                                 node.scaleX(1);
                                 node.scaleY(1);
 
-                                const newPoints = shape.points!.map((p, i) => {
+                                const newPoints = (shape.points || []).map((p, i) => {
                                     return i % 2 === 0 ? p * scaleX : p * scaleY;
                                 });
 

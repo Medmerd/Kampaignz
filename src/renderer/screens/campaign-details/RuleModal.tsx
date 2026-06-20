@@ -78,7 +78,7 @@ const RuleModal = ({ ruleId, parentType, parentId, isOpen, onClose, notify, exis
                         metadata: remainingMetadata,
                         parent_rule_id: rule.parent_rule_id,
                     });
-                }).catch((err: any) => {
+                }).catch((err: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
                     if (notify) notify('error', 'Failed to load Rule', err.message);
                 }).finally(() => setLoading(false));
             } else {
@@ -87,11 +87,11 @@ const RuleModal = ({ ruleId, parentType, parentId, isOpen, onClose, notify, exis
         }
     }, [isOpen, ruleId, form, notify]);
 
-    const handleSave = async (values: any) => {
+    const handleSave = async (values: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
         try {
             setLoading(true);
 
-            let metadataObj: any = {};
+            let metadataObj: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ = {};
             if (values.metadata) {
                 try {
                     metadataObj = JSON.parse(values.metadata);
@@ -131,7 +131,7 @@ const RuleModal = ({ ruleId, parentType, parentId, isOpen, onClose, notify, exis
                 if (notify) notify('success', 'Rule created');
             }
             onClose();
-        } catch (error: any) {
+        } catch (error: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
             if (notify) notify('error', 'Failed to save Rule', error.message);
         } finally {
             setLoading(false);

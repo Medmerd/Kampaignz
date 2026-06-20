@@ -46,7 +46,7 @@ describe('campaign-repo', () => {
     const fetched = await getCampaignById(campaign.id);
     
     expect(fetched).toBeDefined();
-    expect(fetched!.id).toBe(campaign.id);
+    expect(fetched?.id).toBe(campaign.id);
   });
 
   it('updates campaign details and returns updated row', async () => {

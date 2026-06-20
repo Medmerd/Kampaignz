@@ -24,10 +24,10 @@ const getMissionIdsForSession = async (sessionId: number): Promise<number[]> => 
     .where({ session_id: sessionId })
     .orderBy('mission_id', 'asc');
 
-  return rows.map((row: any) => row.mission_id);
+  return rows.map((row: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => row.mission_id);
 };
 
-const mapSession = async (row: any): Promise<Session> => ({
+const mapSession = async (row: any /* eslint-disable-line @typescript-eslint/no-explicit-any */): Promise<Session> => ({
   id: row.id,
   campaign_id: row.campaign_id || 0,
   title: row.title,
@@ -52,7 +52,7 @@ const validateAndNormalizeMissionIds = async (campaignId: number, missionIds: nu
     .where({ campaign_id: campaignId })
     .whereIn('id', normalized);
     
-  const found = new Set(rows.map((row: any) => row.id));
+  const found = new Set(rows.map((row: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => row.id));
 
   for (const id of normalized) {
     if (!found.has(id)) {
