@@ -1,0 +1,88 @@
+{
+  "info": {
+    "name": "Kampaignz API",
+    "description": "API collection for Kampaignz Express Server",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Campaigns",
+      "item": [
+        {
+          "name": "List Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns"]
+            }
+          }
+        },
+        {
+          "name": "Create Campaign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Crusade\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns"]
+            }
+          }
+        },
+        {
+          "name": "Get Campaign by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns", "1"]
+            }
+          }
+        },
+        {
+          "name": "Update Campaign",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Crusade\",\n  \"expectedSessions\": 5,\n  \"config\": \"{}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns", "1"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

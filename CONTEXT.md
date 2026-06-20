@@ -45,16 +45,15 @@ Communication or logs related to campaign events (e.g., battle reports, session 
 
 ## Architectural Decisions
 
-### 1. Hybrid Database Architecture (SQLite & PostgreSQL)
-Kampaignz supports a hybrid database approach using **Knex.js** as the query builder:
-- **Local Desktop Execution**: When running as an Electron desktop application, it uses **SQLite** (via `better-sqlite3` or `sqlite3`) for self-contained, offline-first local file storage.
-- **Web App Execution**: To support the long-term goal of deploying the application as a pod-based Web application, it supports **PostgreSQL** (via the `pg` client).
-- **Environment Selection**: The database client is determined at runtime via the `VITE_DB_CLIENT` environment variable. It defaults to SQLite (`development`) for local execution, but can be set to `devpostgresql`, `staging`, or `production` to connect to a PostgreSQL instance.
+### 1. Database Architecture (PostgreSQL)
+Kampaignz utilizes a centralized database approach using **Knex.js** as the query builder:
+- **Web App Execution**: To support deploying the application as a pod-based Web application or accessed externally via APIs, it supports **PostgreSQL** (via the `pg` client).
+- **Deprecation Notice**: Earlier versions supported a hybrid architecture with local SQLite files. Moving forward, SQLite support has been dropped entirely in favor of a strictly PostgreSQL-backed architecture.
 
-### 2. Symmetrical Communication Bridge (RPC-over-HTTP Mirror)
-To support both desktop (Electron) and web (pod-based) environments without duplicating code, we employ a symmetrical gateway abstraction:
+### 2. Independent RESTful API
+To support both desktop (Electron) and web (pod-based) environments or third-party integrations:
 - **Electron Mode (IPC)**: The React frontend uses the native Electron IPC channel context bridge (`window.api`). This leverages fast, secure, native memory-channel messaging.
-- **Web App Mode (RPC-over-HTTP)**: If the app is executed in a standard browser environment (where `window.api` is undefined), the API client automatically falls back to an **RPC-over-HTTP Mirror**. It sends `POST /api/rpc` payloads detailing the RPC channel (e.g. `missions:create`) and arguments.
-- **Backend Symmetries**: A unified server-side entry point maps the received RPC channel and arguments directly to the exact same repository layer functions that the IPC handlers use. This ensures 100% logic and type sharing between both standalone web and desktop builds.
+- **Web App Mode (REST API)**: If the app is executed in a standard browser environment or accessed externally, it relies on a standard RESTful API (e.g., `GET /api/campaigns`). The API acts as an independent layer hosted via Express.js.
+- **Backend Symmetries**: The REST API routes directly invoke the exact same repository layer functions that the IPC handlers use. This ensures 100% logic and type sharing between standalone web and desktop builds without relying on RPC tunneling.
 
 

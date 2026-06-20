@@ -1,0 +1,115 @@
+openapi: 3.0.3
+info:
+  title: Kampaignz API
+  description: Independent Express API for Kampaignz
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+    description: Local development server
+paths:
+  /campaigns:
+    get:
+      summary: Get all campaigns
+      responses:
+        '200':
+          description: A list of campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Campaign'
+    post:
+      summary: Create a new campaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: "Octarius War"
+      responses:
+        '201':
+          description: Created campaign
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /campaigns/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get a specific campaign
+      responses:
+        '200':
+          description: Campaign details (or empty object if not found)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+    put:
+      summary: Update a specific campaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                expectedSessions:
+                  type: integer
+                config:
+                  type: string
+      responses:
+        '200':
+          description: Updated campaign details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+components:
+  schemas:
+    Campaign:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Octarius War"
+        expectedSessions:
+          type: integer
+          example: 10
+        config:
+          type: string
+          example: "{}"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Campaign name is required."
