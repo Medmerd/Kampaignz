@@ -18,6 +18,7 @@
     "test:coverage": "vitest run --coverage",
     "start:fe": "vite --config vite.renderer.config.ts",
     "start:api": "VITE_DB_CLIENT=devpostgresql tsx src/main/web-server.ts",
+    "start:independent-api": "VITE_DB_CLIENT=devpostgresql tsx apps/api/src/server.ts",
     "start:xml": "tsx apps/xml-parse/index.ts",
     "dev:web": "VITE_DB_CLIENT=devpostgresql tsx watch src/main/web-server.ts"
   },
