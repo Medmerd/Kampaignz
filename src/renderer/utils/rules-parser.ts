@@ -23,9 +23,9 @@ export const parseArmyRulesFromText = (text: string): ParsedRuleCapture[] => {
     const startIndex = match.index;
     const endIndex = stratagemRegex.lastIndex;
     
-    let rawName = match[1].trim();
+    const rawName = match[1].trim();
     const cpCost = match[2].trim();
-    let description = match[3].trim();
+    const description = match[3].trim();
     
     // Clean up the name (sometimes it grabs preceding boilerplate like 'STRATAGEMS' or 'EPIC DEED STRATAGEM')
     // We will just keep the last line of the captured name if it spans multiple lines.
@@ -56,9 +56,9 @@ export const parseArmyRulesFromText = (text: string): ParsedRuleCapture[] => {
     const startIndex = match.index;
     const endIndex = enhancementRegex.lastIndex;
     
-    let rawName = match[1].trim();
+    const rawName = match[1].trim();
     const points = match[2].trim();
-    let description = match[3].trim();
+    const description = match[3].trim();
     
     const nameLines = rawName.split('\n').map(s => s.trim()).filter(s => s.length > 0);
     const finalName = nameLines[nameLines.length - 1];

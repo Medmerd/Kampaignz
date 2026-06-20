@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, Tag, Typography, Space, Button } from 'antd';
 import ReactMarkdown from 'react-markdown';
-import type { Rule } from '../../types';
+import type { Rule } from '../types';
 
 const { Title, Text } = Typography;
 
@@ -81,7 +81,7 @@ const ArmyRuleCard: React.FC<ArmyRuleCardProps> = ({ rule, onEdit, onDelete, isN
 
       {rule.children && rule.children.length > 0 && (
         <div style={{ marginTop: 24, paddingLeft: 16, borderLeft: '2px dashed #d9d9d9' }}>
-          {rule.children.map(child => (
+          {rule.children.map((child: Rule) => (
             <ArmyRuleCard 
               key={child.id} 
               rule={child} 

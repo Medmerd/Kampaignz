@@ -3,7 +3,7 @@ import knex from 'knex';
 import * as dotenv from 'dotenv';
 import { BattleScribeParser } from './parser';
 import { ingestData } from './ingestor';
-// @ts-ignore
+import { extractRulebookUnits } from './rulebook-extractor';
 import knexConfig from '../../knexfile.js';
 
 dotenv.config();
@@ -65,6 +65,9 @@ async function main(): Promise<void> {
                 // Continue to the next file even if one fails
             }
         }
+
+        console.log("\nStarting Domain ETL Extraction...");
+        await extractRulebookUnits(db);
 
         console.log("\nImport process fully completed.");
     } catch (e) {

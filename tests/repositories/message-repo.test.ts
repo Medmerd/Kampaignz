@@ -23,8 +23,8 @@ describe('message-repo', () => {
     const campaign = await createCampaign('Test Campaign');
     campaignId = campaign.id;
 
-    const p1 = await createPlayer(campaignId, { playerName: 'Alice', army: 'L', notes: '', config: '{}' });
-    const p2 = await createPlayer(campaignId, { playerName: 'Bob', army: 'L', notes: '', config: '{}' });
+    const p1 = await createPlayer(campaignId, { playerName: 'Alice', army_rule_id: null, notes: '', config: '{}' });
+    const p2 = await createPlayer(campaignId, { playerName: 'Bob', army_rule_id: null, notes: '', config: '{}' });
     
     playerId1 = p1.id;
     playerId2 = p2.id;

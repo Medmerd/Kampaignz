@@ -159,3 +159,8 @@ export type SessionInput = {
   missionIds: number[];
 };
 
+export type Route = 
+  | { name: 'campaign-list' }
+  | { name: 'campaign-detail'; campaignId: number };
+
+

@@ -1,10 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import { initializeDatabase } from './database';
-import { setupMissionIPC } from './ipc/mission-ipc';
-import { setupArmyRulesIPC } from './ipc/army-rules-ipc';
-import { setupRulesIPC } from './ipc/rules-ipc';
-import { setupPlayerRulesIPC } from './ipc/player-rules-ipc';
 
 // Import repositories and services
 import {

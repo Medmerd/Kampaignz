@@ -34,7 +34,7 @@ describe('player-rules-repo', () => {
   });
 
   it('assigns, unassigns, and lists player rules', async () => {
-    const rule = await createRule({ campaign_id: campaignId, name: 'Basic Rule', cost: 0, description: '', rule_category: 'test' });
+    const rule = await createRule({ campaign_id: campaignId, name: 'Basic Rule', description: '', rule_category: 'test' });
     
     const assigned = await assignRuleToPlayer(playerA, rule.id);
     expect(assigned.id).toBeDefined();
@@ -53,7 +53,6 @@ describe('player-rules-repo', () => {
     const rule = await createRule({ 
         campaign_id: campaignId, 
         name: 'Limited Enh', 
-        cost: 0, 
         description: '',
         rule_category: 'test',
         metadata: JSON.stringify({ max_per_player: 1 }) 
@@ -73,7 +72,6 @@ describe('player-rules-repo', () => {
     const rule = await createRule({ 
         campaign_id: campaignId, 
         name: 'Epic Relic', 
-        cost: 0, 
         description: '',
         rule_category: 'test',
         metadata: JSON.stringify({ max_campaign_wide: 1 }) 
@@ -87,11 +85,10 @@ describe('player-rules-repo', () => {
   });
 
   it('allows assigning a mission rule', async () => {
-    const mission = await createMission(campaignId, { title: 'Test Mission', description: '', missionDetails: '', map: '', config: '{}' });
+    const mission = await createMission(campaignId, { title: 'Test Mission', missionDetails: '', map: '', config: {} });
     const rule = await createRule({ 
       mission_id: mission.id, 
       name: 'Mission Special', 
-      cost: 0, 
       description: '', 
       rule_category: 'test' 
     });
@@ -105,7 +102,6 @@ describe('player-rules-repo', () => {
     const rule = await createRule({ 
       army_rule_id: armyBook.id, 
       name: 'Army Special', 
-      cost: 0, 
       description: '', 
       rule_category: 'test' 
     });

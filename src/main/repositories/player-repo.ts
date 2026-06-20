@@ -56,7 +56,7 @@ export const createPlayer = async (campaignId: number, input: PlayerInput): Prom
 
     const insertedId = typeof insertResult[0] === 'object' ? insertResult[0].id : insertResult[0];
 
-    const row = await trx('players')
+    const row = (await trx('players')
       .leftJoin('army_rules', 'players.army_rule_id', 'army_rules.id')
       .select(
         'players.id',
@@ -69,7 +69,7 @@ export const createPlayer = async (campaignId: number, input: PlayerInput): Prom
         'players.created_at'
       )
       .where({ 'players.id': insertedId })
-      .first() as Promise<Player | undefined>;
+      .first()) as Player | undefined;
 
     if (!row) {
       throw new Error('Failed to create player.');
@@ -101,7 +101,7 @@ export const updatePlayer = async (playerId: number, input: PlayerInput): Promis
     throw new Error('Player not found.');
   }
 
-  const row = await db('players')
+  const row = (await db('players')
     .leftJoin('army_rules', 'players.army_rule_id', 'army_rules.id')
     .select(
       'players.id',
@@ -114,7 +114,7 @@ export const updatePlayer = async (playerId: number, input: PlayerInput): Promis
       'players.created_at'
     )
     .where({ 'players.id': playerId })
-    .first() as Promise<Player | undefined>;
+    .first()) as Player | undefined;
 
   if (!row) {
     throw new Error('Failed to update player.');

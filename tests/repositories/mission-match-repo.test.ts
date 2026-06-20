@@ -27,10 +27,10 @@ describe('mission-match-repo', () => {
     const m1 = await createMission(campaignId, { title: 'M1', config: {}, missionDetails: '', map: '' });
     missionId = m1.id;
 
-    const pl1 = await createPlayer(campaignId, { playerName: 'A', army: 'L', notes: '', config: '{}' });
-    const pl2 = await createPlayer(campaignId, { playerName: 'B', army: 'L', notes: '', config: '{}' });
-    const pl3 = await createPlayer(campaignId, { playerName: 'C', army: 'L', notes: '', config: '{}' });
-    const pl4 = await createPlayer(campaignId, { playerName: 'D', army: 'L', notes: '', config: '{}' });
+    const pl1 = await createPlayer(campaignId, { playerName: 'A', army_rule_id: null, notes: '', config: '{}' });
+    const pl2 = await createPlayer(campaignId, { playerName: 'B', army_rule_id: null, notes: '', config: '{}' });
+    const pl3 = await createPlayer(campaignId, { playerName: 'C', army_rule_id: null, notes: '', config: '{}' });
+    const pl4 = await createPlayer(campaignId, { playerName: 'D', army_rule_id: null, notes: '', config: '{}' });
     
     p1 = pl1.id; p2 = pl2.id; p3 = pl3.id; p4 = pl4.id;
     

@@ -57,18 +57,14 @@ source ~/.nvm/nvm.sh
 ### 1. Desktop Mode (Electron)
 Launch Kampaignz as a local Electron desktop application:
 ```bash
-npm run start
+npm run start:fe
 ```
 *Note:* SQLite migrations are run automatically on application startup.
 
 ### 2. Standalone Web Mode (Pod/Web Server)
-Run Symmetrical Kampaignz as a standalone Node.js web-server:
+Run Symmetrical Kampaignz Node.js web-server and API in development mode with watch/hot-reloading enabled:
 ```bash
-npm run start:web
-```
-Or start in development mode with watch/hot-reloading enabled:
-```bash
-npm run dev:web
+npm run dev
 ```
 
 ---
@@ -78,4 +74,15 @@ npm run dev:web
 Kampaignz uses **Vitest** for running fast repository, database mapping, and IPC integration tests.
 ```bash
 npm run test
+```
+
+With coverage report:
+```bash
+npm run test:coverage
+```
+
+## Lint
+
+```bash
+npm run lint
 ```

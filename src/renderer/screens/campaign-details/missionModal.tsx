@@ -51,7 +51,7 @@ const MissionModal = (options: MissionModalOptions) => {
                     api.listMissionMatches(missionId)
                 ]);
                 
-                const missionData = missionDataList.find(m => m.id === missionId);
+                const missionData = missionDataList.find((m: any) => m.id === missionId);
 
                 if (missionData) {
                     setSelectedMission(missionData);
@@ -64,7 +64,7 @@ const MissionModal = (options: MissionModalOptions) => {
                 }
                 if (matchData) {
                     // Normalize MatchType just in case
-                    const normalizedMatches = matchData.map(m => ({
+                    const normalizedMatches = matchData.map((m: any) => ({
                         ...m,
                         matchType: Number(m.matchType) as MatchType
                     }));
@@ -105,7 +105,7 @@ const MissionModal = (options: MissionModalOptions) => {
     }, [players, usedPlayerIds]);
 
     const playerOptions = useMemo(() => {
-        return availablePlayers.map(p => ({ value: p.id, label: `${p.playerName} (${p.army})` }));
+        return availablePlayers.map(p => ({ value: p.id, label: `${p.playerName} (${p.army_rule_name || ''})` }));
     }, [availablePlayers]);
 
     const generateMatches = useCallback(() => {
@@ -306,7 +306,7 @@ const MissionModal = (options: MissionModalOptions) => {
                                     availablePlayers.map((player) => (
                                         <li key={player.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
                                             <Typography.Text>{player.playerName}</Typography.Text>
-                                            <Typography.Text type="secondary">{player.army}</Typography.Text>
+                                            <Typography.Text type="secondary">{player.army_rule_name || ''}</Typography.Text>
                                         </li>
                                     ))
                                 )}

@@ -20,7 +20,7 @@ const PlayerTab = ({ campaignId, notify }: TabOptions) => {
             const data = await api.listPlayersByCampaign(campaignId);
             
             // Fetch rules for all players
-            const playersWithRules = await Promise.all(data.map(async (p) => {
+            const playersWithRules = await Promise.all(data.map(async (p: any) => {
                 const rules = await api.listPlayerRules(p.id);
                 return { ...p, playerRules: rules };
             }));

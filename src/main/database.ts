@@ -1,8 +1,7 @@
 import path from 'node:path';
 import knex, { Knex } from 'knex';
 import * as dotenv from 'dotenv';
-// @ts-ignore
-const knexConfig = require('../../knexfile.js');
+import knexConfig from '../../knexfile';
 
 dotenv.config();
 
@@ -33,13 +32,16 @@ export const initializeDatabase = async (): Promise<Knex> => {
     if (!config.connection) {
       config.connection = {};
     }
-    if (config.connection.filename === './dev.sqlite3') {
+
+    const conn = config.connection as { filename?: string };
+
+    if (conn.filename === './dev.sqlite3') {
       try {
         const { app } = require('electron');
-        config.connection.filename = path.join(app.getPath('userData'), 'kampaignz.db');
+        conn.filename = path.join(app.getPath('userData'), 'kampaignz.db');
       } catch (err) {
         // Safe fallback when running outside Electron (e.g. standalone web-server pod)
-        config.connection.filename = path.join(process.cwd(), 'dev.sqlite3');
+        conn.filename = path.join(process.cwd(), 'dev.sqlite3');
       }
     }
     config.useNullAsDefault = true;
