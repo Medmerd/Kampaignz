@@ -6,6 +6,10 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
     return res.status(400).json({ error: err.message });
   }
 
+  if (err instanceof Error && err.message.includes('not found')) {
+    return res.status(404).json({ error: err.message });
+  }
+
   // Default to 500 for unhandled errors
   console.error('Unhandled API Error:', err);
   res.status(500).json({ error: err instanceof Error ? err.message : 'Internal Server Error' });
