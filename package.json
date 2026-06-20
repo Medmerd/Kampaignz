@@ -18,6 +18,7 @@
     "test:coverage": "vitest run --coverage",
     "start:fe": "vite --config vite.renderer.config.ts",
     "start:api": "VITE_DB_CLIENT=devpostgresql tsx src/main/web-server.ts",
+    "start:independent-api": "VITE_DB_CLIENT=devpostgresql tsx apps/api/src/server.ts",
     "start:xml": "tsx apps/xml-parse/index.ts",
     "dev:web": "VITE_DB_CLIENT=devpostgresql tsx watch src/main/web-server.ts"
   },
@@ -40,6 +41,7 @@
     "@types/express": "^5.0.6",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/supertest": "^7.2.0",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
@@ -50,6 +52,7 @@
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.32.0",
     "sqlite3": "^6.0.1",
+    "supertest": "^7.2.2",
     "tsx": "^4.22.3",
     "typescript": "^6.0.3",
     "vite": "^5.4.21",

@@ -1,0 +1,371 @@
+{
+  "info": {
+    "name": "Kampaignz API",
+    "description": "API collection for Kampaignz Express Server",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Campaigns",
+      "item": [
+        {
+          "name": "List Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns"]
+            }
+          }
+        },
+        {
+          "name": "Create Campaign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Crusade\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns"]
+            }
+          }
+        },
+        {
+          "name": "Get Campaign by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns", "1"]
+            }
+          }
+        },
+        {
+          "name": "Update Campaign",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Crusade\",\n  \"expectedSessions\": 5,\n  \"config\": \"{}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Missions",
+      "item": [
+        {
+          "name": "List Missions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns/1/missions",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns", "1", "missions"]
+            }
+          }
+        },
+        {
+          "name": "Create Mission",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"title\": \"Strike Force\",\n  \"config\": {},\n  \"missionDetails\": \"\",\n  \"map\": \"\"\n}"},
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns/1/missions",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns", "1", "missions"]
+            }
+          }
+        },
+        {
+          "name": "Update Mission",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"title\": \"Updated Mission\",\n  \"config\": {},\n  \"missionDetails\": \"\",\n  \"map\": \"\"\n}"},
+            "url": {
+              "raw": "http://localhost:3000/api/missions/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "missions", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sessions",
+      "item": [
+        {
+          "name": "List Sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns/1/sessions",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns", "1", "sessions"]
+            }
+          }
+        },
+        {
+          "name": "Create Session",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"title\": \"Session 1\",\n  \"notes\": \"\",\n  \"config\": {},\n  \"missionIds\": []\n}"},
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns/1/sessions",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns", "1", "sessions"]
+            }
+          }
+        },
+        {
+          "name": "Update Session",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"title\": \"Updated Session\",\n  \"notes\": \"\",\n  \"config\": {},\n  \"missionIds\": []\n}"},
+            "url": {
+              "raw": "http://localhost:3000/api/sessions/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "sessions", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Players",
+      "item": [
+        {
+          "name": "List Players",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns/1/players",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns", "1", "players"]
+            }
+          }
+        },
+        {
+          "name": "Create Player",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"playerName\": \"John Doe\",\n  \"army_rule_id\": null,\n  \"notes\": \"\",\n  \"config\": \"{}\"\n}"},
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns/1/players",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns", "1", "players"]
+            }
+          }
+        },
+        {
+          "name": "Update Player",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"playerName\": \"John Doe Updated\",\n  \"army_rule_id\": null,\n  \"notes\": \"\",\n  \"config\": \"{}\"\n}"},
+            "url": {
+              "raw": "http://localhost:3000/api/players/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "players", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Army Rulebooks",
+      "item": [
+        {
+          "name": "List Army Rulebooks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns/1/army-rulebooks",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns", "1", "army-rulebooks"]
+            }
+          }
+        },
+        {
+          "name": "Create Army Rulebook",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"name\": \"Space Marines\",\n  \"description\": \"Space Marines Army Rulebook\"\n}"},
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns/1/army-rulebooks",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns", "1", "army-rulebooks"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rules",
+      "item": [
+        {
+          "name": "List Rules for Campaign",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns/1/rules",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns", "1", "rules"]
+            }
+          }
+        },
+        {
+          "name": "Create Rule",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"name\": \"New Rule\",\n  \"rule_category\": \"campaign\",\n  \"campaign_id\": 1\n}"},
+            "url": {
+              "raw": "http://localhost:3000/api/rules",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "rules"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Player Rules",
+      "item": [
+        {
+          "name": "List Rules for Player",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/players/1/rules",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "players", "1", "rules"]
+            }
+          }
+        },
+        {
+          "name": "Assign Rule to Player",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"ruleId\": 1\n}"},
+            "url": {
+              "raw": "http://localhost:3000/api/players/1/rules",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "players", "1", "rules"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "List Messages for Campaign",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns/1/messages",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns", "1", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Create Message",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"content\": \"Hello!\",\n  \"config\": \"{}\",\n  \"playerIds\": []\n}"},
+            "url": {
+              "raw": "http://localhost:3000/api/campaigns/1/messages",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "campaigns", "1", "messages"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,836 @@
+openapi: 3.0.3
+info:
+  title: Kampaignz API
+  description: Independent Express API for Kampaignz
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+    description: Local development server
+paths:
+  /campaigns:
+    get:
+      summary: Get all campaigns
+      responses:
+        '200':
+          description: A list of campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Campaign'
+    post:
+      summary: Create a new campaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: "Octarius War"
+      responses:
+        '201':
+          description: Created campaign
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /campaigns/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get a specific campaign
+      responses:
+        '200':
+          description: Campaign details (or empty object if not found)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+    put:
+      summary: Update a specific campaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                expectedSessions:
+                  type: integer
+                config:
+                  type: string
+      responses:
+        '200':
+          description: Updated campaign details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+  /campaigns/{id}/missions:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get all missions for a campaign
+      responses:
+        '200':
+          description: A list of missions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Mission'
+    post:
+      summary: Create a new mission
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MissionInput'
+      responses:
+        '201':
+          description: Created mission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mission'
+        '400':
+          description: Validation error
+  /campaigns/{id}/sessions:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get all sessions for a campaign
+      responses:
+        '200':
+          description: A list of sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Session'
+    post:
+      summary: Create a new session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionInput'
+      responses:
+        '201':
+          description: Created session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          description: Validation error
+  /campaigns/{id}/players:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get all players for a campaign
+      responses:
+        '200':
+          description: A list of players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Player'
+    post:
+      summary: Create a new player
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerInput'
+      responses:
+        '201':
+          description: Created player
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '400':
+          description: Validation error
+  /campaigns/{id}/army-rulebooks:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get all army rulebooks for a campaign
+      responses:
+        '200':
+          description: A list of army rulebooks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ArmyRulebook'
+    post:
+      summary: Create a new army rulebook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArmyRulebookInput'
+      responses:
+        '201':
+          description: Created army rulebook
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArmyRulebook'
+        '400':
+          description: Validation error
+  /campaigns/{id}/rules:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get all rules for a campaign
+      responses:
+        '200':
+          description: A list of rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rule'
+  /campaigns/{id}/messages:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get all messages for a campaign
+      responses:
+        '200':
+          description: A list of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+    post:
+      summary: Create a new message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageInput'
+      responses:
+        '201':
+          description: Created message
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          description: Validation error
+  /missions/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    put:
+      summary: Update a specific mission
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MissionInput'
+      responses:
+        '200':
+          description: Updated mission details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mission'
+        '404':
+          description: Mission not found
+  /missions/{id}/rules:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get all rules for a mission
+      responses:
+        '200':
+          description: A list of rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rule'
+  /sessions/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    put:
+      summary: Update a specific session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionInput'
+      responses:
+        '200':
+          description: Updated session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '404':
+          description: Session not found
+  /players/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    put:
+      summary: Update a specific player
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerInput'
+      responses:
+        '200':
+          description: Updated player details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '404':
+          description: Player not found
+  /army-rulebooks/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get a specific army rulebook
+      responses:
+        '200':
+          description: Army rulebook details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArmyRulebook'
+        '404':
+          description: Army rulebook not found
+    put:
+      summary: Update a specific army rulebook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArmyRulebookInput'
+      responses:
+        '200':
+          description: Updated army rulebook
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArmyRulebook'
+        '404':
+          description: Army rulebook not found
+  /army-rulebooks/{id}/share:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    post:
+      summary: Share an army rulebook with another campaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                campaignId:
+                  type: integer
+      responses:
+        '200':
+          description: Successfully shared
+        '400':
+          description: Validation error
+  /army-rulebooks/{id}/share/{campaignId}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+      - in: path
+        name: campaignId
+        required: true
+        schema:
+          type: integer
+    delete:
+      summary: Remove a share from a campaign
+      responses:
+        '200':
+          description: Successfully removed share
+  /rules:
+    post:
+      summary: Create a new rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuleInput'
+      responses:
+        '201':
+          description: Created rule
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+        '400':
+          description: Validation error
+  /rules/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    put:
+      summary: Update a specific rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuleUpdateInput'
+      responses:
+        '200':
+          description: Updated rule
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+        '404':
+          description: Rule not found
+    delete:
+      summary: Delete a rule
+      responses:
+        '200':
+          description: Successfully deleted
+        '404':
+          description: Rule not found
+  /player-rules/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    delete:
+      summary: Remove a rule from a player
+      responses:
+        '200':
+          description: Successfully removed
+  /messages/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    put:
+      summary: Update a message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageInput'
+      responses:
+        '200':
+          description: Updated message
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '404':
+          description: Message not found
+  /players/{id}/rules:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get all rules for a player
+      responses:
+        '200':
+          description: A list of player rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlayerRule'
+    post:
+      summary: Assign a rule to a player
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ruleId
+              properties:
+                ruleId:
+                  type: integer
+      responses:
+        '201':
+          description: Assigned rule
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerRule'
+        '400':
+          description: Validation error
+components:
+  schemas:
+    Campaign:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Octarius War"
+        expectedSessions:
+          type: integer
+          example: 10
+        config:
+          type: string
+          example: "{}"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Campaign name is required."
+    Mission:
+      type: object
+      properties:
+        id:
+          type: integer
+        campaign_id:
+          type: integer
+        title:
+          type: string
+        config:
+          type: object
+        missionDetails:
+          type: string
+        map:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    MissionInput:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+        config:
+          type: object
+        missionDetails:
+          type: string
+        map:
+          type: string
+    Session:
+      type: object
+      properties:
+        id:
+          type: integer
+        campaign_id:
+          type: integer
+        title:
+          type: string
+        notes:
+          type: string
+        config:
+          type: object
+        mission_ids:
+          type: array
+          items:
+            type: integer
+        created_at:
+          type: string
+          format: date-time
+    SessionInput:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+        notes:
+          type: string
+        config:
+          type: object
+        missionIds:
+          type: array
+          items:
+            type: integer
+    Player:
+      type: object
+      properties:
+        id:
+          type: integer
+        campaign_id:
+          type: integer
+        playerName:
+          type: string
+        army_rule_id:
+          type: integer
+          nullable: true
+        army_rule_name:
+          type: string
+        notes:
+          type: string
+        config:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    PlayerInput:
+      type: object
+      required:
+        - playerName
+      properties:
+        playerName:
+          type: string
+        army_rule_id:
+          type: integer
+          nullable: true
+        notes:
+          type: string
+        config:
+          type: string
+    ArmyRulebook:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        original_campaign_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ArmyRulebookInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+    Rule:
+      type: object
+      properties:
+        id:
+          type: integer
+        army_rule_id:
+          type: integer
+          nullable: true
+        campaign_id:
+          type: integer
+          nullable: true
+        mission_id:
+          type: integer
+          nullable: true
+        rule_category:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        metadata:
+          type: string
+          nullable: true
+        parent_rule_id:
+          type: integer
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    RuleInput:
+      type: object
+      required:
+        - name
+        - rule_category
+      properties:
+        name:
+          type: string
+        rule_category:
+          type: string
+        description:
+          type: string
+        metadata:
+          type: string
+        army_rule_id:
+          type: integer
+        campaign_id:
+          type: integer
+        mission_id:
+          type: integer
+        parent_rule_id:
+          type: integer
+    RuleUpdateInput:
+      type: object
+      required:
+        - name
+        - rule_category
+      properties:
+        name:
+          type: string
+        rule_category:
+          type: string
+        description:
+          type: string
+        metadata:
+          type: string
+        parent_rule_id:
+          type: integer
+    PlayerRule:
+      type: object
+      properties:
+        id:
+          type: integer
+        player_id:
+          type: integer
+        rule_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+        campaign_id:
+          type: integer
+        content:
+          type: string
+        config:
+          type: string
+        player_ids:
+          type: array
+          items:
+            type: integer
+        created_at:
+          type: string
+          format: date-time
+    MessageInput:
+      type: object
+      properties:
+        content:
+          type: string
+        config:
+          type: string
+        playerIds:
+          type: array
+          items:
+            type: integer
